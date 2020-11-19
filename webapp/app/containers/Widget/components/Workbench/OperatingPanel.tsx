@@ -7,6 +7,7 @@ import widgetlibs from '../../config'
 import { IDataRequestBody } from 'app/containers/Dashboard/types'
 import { IViewBase, IFormedViews, IView } from 'containers/View/types'
 import { ViewModelVisualTypes, ViewModelTypes } from 'containers/View/constants'
+import { onSectionChange } from './ConfigSections/SpecSection/specs/util'
 import Dropbox, {
   DropboxType,
   DropType,
@@ -71,6 +72,7 @@ import {
   getPivotModeSelectedCharts,
   checkChartEnable
 } from '../util'
+import { isSumNodeEndReg, replaceRowColPrx } from '../Pivot/util'
 import { PIVOT_DEFAULT_SCATTER_SIZE_TIMES } from 'app/globalConstants'
 import PivotTypes from '../../config/pivot/PivotTypes'
 
@@ -104,6 +106,7 @@ import {
   ControlPanelTypes,
   ControlQueryMode
 } from 'app/components/Control/constants'
+import tree from '../Pivot/tree'
 const MenuItem = Menu.Item
 const RadioButton = Radio.Button
 const RadioGroup = Radio.Group
@@ -136,8 +139,11 @@ interface IOperatingPanelProps {
   limit: number
   cache: boolean
   autoLoadData: boolean
+  sum: boolean
+  sumType: string[]
   expired: number
   workbenchQueryMode: WorkbenchQueryMode
+  widgetProps: IWidgetProps
   multiDrag: boolean
   computed: any[]
   originalComputed: any[]
@@ -147,7 +153,9 @@ interface IOperatingPanelProps {
   onLimitChange: (value) => void
   onCacheChange: (e: RadioChangeEvent) => void
   onChangeAutoLoadData: (e: RadioChangeEvent) => void
+  onChangeSum: (e: RadioChangeEvent) => void
   onExpiredChange: (expired: number) => void
+  onSumTypeChange: (sumType: number) => void
   onSetComputed: (computesField: any[]) => void
   onDeleteComputed: (computesField: any[]) => void
   onSetWidgetProps: (widgetProps: IWidgetProps) => void
@@ -367,7 +375,6 @@ export class OperatingPanel extends React.Component<
           })
         }
       })
-
       if (secondaryMetrics) {
         dataParams.metrics = {
           title: '左轴指标',
@@ -1056,7 +1063,55 @@ export class OperatingPanel extends React.Component<
       orders
     })
   }
+  public setOriginOption(dataParams, list = null) {
+    const { sum, sumType } = this.props
+    const { rows, cols, metrics } = dataParams
+    const rowGroup = rows && rows.items.map((item) => `${item.name}_rows`)
+    const colGroup = cols && cols.items.reduce((col, item) => {
+      const repeatGroup = col.filter((item) => item === `${item.name}_cols`)
+      const colItem = repeatGroup.length ? repeatGroup.length : ''
+      col = [...col, `${item.name}_cols${colItem}`]
+      return col
+    }, [])
+    const metricsItems = metrics.items[0]
+    let metricsName
+    if(metricsItems){
+      metricsName = `${metricsItems.agg}(${
+        metricsItems.name.split('@')[0]
+      })`
+    }
 
+    const setOriginJsonByKey = (list) => {
+      const concatRowCol = metricsName ? [...colGroup, ...rowGroup, metricsName]: [...colGroup, ...rowGroup]
+      const wideList = list.reduce((pre, cur) => {
+        cur = concatRowCol.reduce((obj, key) => {
+          obj[key] = cur[replaceRowColPrx(key)]
+          return obj
+        }, {})
+        return (pre = [...pre, cur])
+      }, [])
+      return wideList
+    }
+    const data = list ? list : this.props.widgetProps.data
+    const wideTableList = setOriginJsonByKey(data)
+    const options = {
+      metrics: metricsName ? [metricsName] : [],
+      rowGroup,
+      colGroup,
+      wideTableList
+    }
+    const {
+      widgetProps: { transformedWideTableList }
+    } = tree.getCompluteJson(options)
+    const resultList = this.makeOriginJson(
+      transformedWideTableList,
+      rowGroup,
+      colGroup,
+      [metricsName],
+      sumType
+    )
+    return resultList
+  }
   private forceSetWidgetProps = () => {
     const { dataParams, styleParams, pagination } = this.state
     this.setWidgetProps(dataParams, styleParams, {
@@ -1066,6 +1121,30 @@ export class OperatingPanel extends React.Component<
     })
   }
 
+  private makeOriginJson = (data, rowArray, colArray, tagGroup, sumType) => {
+    const rowOrder = [...colArray, ...rowArray, ...tagGroup]
+    return data.reduce((pre, cur) => {
+      const newObj = {}
+      rowOrder.forEach((key) => {
+        newObj[key] = cur[key]
+      })
+      return pre.concat(newObj)
+      // const keys = Object.values(newObj)
+      // const isNoramlNode = keys.every((k: string)=>!['总和', '合计'].includes(k))
+      // const isSumNode = keys.some((k: string)=> k== '总和')
+      // const isSubSumNode = keys.some((k: string)=> k== '合计')
+      // if(isNoramlNode){
+      //   return pre.concat(newObj)
+      // } else {
+      //   if(sumType.includes('sum') && isSumNode || sumType.includes('subSum') && isSubSumNode){
+      //     return pre.concat(newObj)
+      //   } else {
+      //     return pre
+      //   }
+      // }
+      
+    }, [])
+  }
   private setWidgetProps = (
     dataParams: IDataParams,
     styleParams: IChartStyles,
@@ -1224,7 +1303,6 @@ export class OperatingPanel extends React.Component<
     const mergedParams = this.getChartDataConfig(selectedCharts)
     const mergedDataParams = mergedParams.dataParams
     const mergedStyleParams = mergedParams.styleParams
-
     let noAggregators = false
     if (styleParams.table) {
       // @FIXME pagination in table style config
@@ -1257,7 +1335,9 @@ export class OperatingPanel extends React.Component<
       nativeQuery: noAggregators,
       limit: options?.limit || this.props.limit,
       cache: false,
+      sum: false,
       expired: 0,
+      sumType: [],
       flush: false
     }
 
@@ -1266,21 +1346,25 @@ export class OperatingPanel extends React.Component<
         requestParams.orders = requestParams.orders.concat(options.orders)
       }
     }
-
     const requestParamString = JSON.stringify(requestParams)
     const needRequest =
       (groups.length > 0 || aggregators.length > 0) &&
       selectedViewId &&
-      requestParamString !== this.lastRequestParamString &&
+      (requestParamString !== this.lastRequestParamString ||
+        (requestParamString == this.lastRequestParamString &&
+          !dataParams.rows.items.length)) &&
       workbenchQueryMode === WorkbenchQueryMode.Immediately
-
+    console.log(mergedParams,dataParams,this.props, 'mergedParams')
     if (needRequest) {
       this.lastRequestParamString = requestParamString
       onLoadData(
         selectedViewId,
         requestParams,
         (result) => {
-          const { resultList: data, pageNo, pageSize, totalCount } = result
+          // if(dataParams.metrics.items.length == 1){
+          //   result.resultList = this.setOriginOption(dataParams, result.resultList)
+          // }
+          let { resultList: data, pageNo, pageSize, totalCount } = result
           updatedPagination = !updatedPagination.withPaging
             ? updatedPagination
             : {
@@ -1886,13 +1970,17 @@ export class OperatingPanel extends React.Component<
       limit,
       cache,
       autoLoadData,
+      sum,
       expired,
+      sumType,
       workbenchQueryMode,
       multiDrag,
       computed,
       onCacheChange,
       onChangeAutoLoadData,
+      onChangeSum,
       onExpiredChange,
+      onSumTypeChange,
       onLoadColumnDistinctValue,
       onLoadViews,
       onLoadViewDetail,
@@ -2323,6 +2411,50 @@ export class OperatingPanel extends React.Component<
                     </RadioGroup>
                   </Col>
                 </Row>
+              </div>
+            </div>
+            <div className={styles.paneBlock}>
+              <h4>开启总和</h4>
+              <div className={styles.blockBody}>
+                <Row
+                  gutter={8}
+                  type="flex"
+                  align="middle"
+                  className={styles.blockRow}
+                >
+                  <Col span={24}>
+                    <RadioGroup
+                      size="small"
+                      value={sum}
+                      onChange={onChangeSum}
+                      disabled = { this.props.widgetProps.mode === "chart" || this.props.widgetProps.mode === "pivot" && this.props.widgetProps.metrics.length !==1}
+                    >
+                      <RadioButton value={false}>关闭</RadioButton>
+                      <RadioButton value={true}>开启</RadioButton>
+                    </RadioGroup>
+                  </Col>
+                </Row>
+              </div>
+              
+            </div>
+            <div className={styles.paneBlock}>
+              <h4>总和类别 {sum}</h4>
+              <div className={styles.blockBody}>
+              <Checkbox.Group  style={{ width: '100%' }} value={ sumType }  disabled = { this.props.widgetProps.mode === "chart" || this.props.widgetProps.mode === "pivot" && this.props.widgetProps.metrics.length !==1} onChange={onSumTypeChange}>
+                <Row
+                  gutter={8}
+                  type="flex"
+                  align="middle"
+                  className={styles.blockRow}
+                >
+                  <Col span={10}>
+                    <Checkbox value={'sum'}  disabled={!sum} >总和</Checkbox>
+                  </Col>
+                  <Col span={10}>
+                    <Checkbox value={'subSum'}  disabled={!sum}>小计</Checkbox>
+                  </Col>
+                </Row>
+                </Checkbox.Group>
               </div>
             </div>
           </div>
