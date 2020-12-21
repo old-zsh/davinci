@@ -115,6 +115,7 @@ export function* getWidgetDetail(action: WidgetActionType) {
       })
     }
     const viewResult = yield call(request, `${api.view}/${widget.viewId}`)
+    console.log(viewResult, 'viewResult')
     yield put(
       WidgetActions.widgetDetailLoaded(formedWidget, viewResult.payload)
     )

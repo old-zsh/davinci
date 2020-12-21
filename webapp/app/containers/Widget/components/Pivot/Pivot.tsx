@@ -199,7 +199,7 @@ export class Pivot extends React.PureComponent<IPivotProps, IPivotStates> {
 
   private getRenderData = (props) => {
     const { width, height, cols, rows, metrics, data, xAxis, dimetionAxis } = props
-
+    console.log(props, 'props')
     this.rowHeaderWidths = rows.map((r) => getPivotContentTextWidth(r, 'bold'))
     if (!cols.length && !rows.length) {
       this.tree[0] = data.slice()
@@ -273,6 +273,7 @@ export class Pivot extends React.PureComponent<IPivotProps, IPivotStates> {
   }
 
   private getRowKeyAndColKey = (props: IPivotProps, record: object, hasDimetionAxis: boolean) => {
+    console.log(props, 'props')
     const { cols, rows, metrics } = props
 
     const rowKey = []

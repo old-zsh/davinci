@@ -104,6 +104,7 @@ import {
   ControlPanelTypes,
   ControlQueryMode
 } from 'app/components/Control/constants'
+import tree from '../Pivot/tree'
 const MenuItem = Menu.Item
 const RadioButton = Radio.Button
 const RadioGroup = Radio.Group
@@ -1280,7 +1281,12 @@ export class OperatingPanel extends React.Component<
         selectedViewId,
         requestParams,
         (result) => {
-          const { resultList: data, pageNo, pageSize, totalCount } = result
+          console.log(result, 'result')
+          // debugger
+          const tagGroup = ['sum(总停留时间)']
+          result.resultList = tree.getCompluteJson( result.resultList, tagGroup)
+          console.log(result.resultList, '设置的值')
+          let { resultList: data, pageNo, pageSize, totalCount } = result
           updatedPagination = !updatedPagination.withPaging
             ? updatedPagination
             : {
@@ -1289,6 +1295,8 @@ export class OperatingPanel extends React.Component<
                 pageSize,
                 totalCount
               }
+              
+          console.log(metrics.items, 'metrics.items值')
           onSetWidgetProps({
             cols: cols.items.map((item) => ({
               ...item,

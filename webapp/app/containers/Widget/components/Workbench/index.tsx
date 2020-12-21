@@ -185,6 +185,7 @@ export class Workbench extends React.Component<
   public componentWillReceiveProps(nextProps: IWorkbenchProps) {
     const { currentWidget } = nextProps
     if (currentWidget && currentWidget !== this.props.currentWidget) {
+      console.log(currentWidget, 'currentWidget')
       const { id, name, description, viewId, config } = currentWidget
       const {
         controls,
@@ -197,6 +198,7 @@ export class Workbench extends React.Component<
         queryMode,
         ...rest
       } = config
+      console.log({ ...rest }, '...rest')
       this.setState({
         id,
         name,
@@ -453,6 +455,7 @@ export class Workbench extends React.Component<
   private setWidgetProps = (widgetProps: IWidgetProps) => {
     const { cols, rows } = widgetProps
     const data = [...(widgetProps.data || this.state.widgetProps.data)]
+    console.log(data,widgetProps, 'setWidgetProps data')
     const customOrders = cols
       .concat(rows)
       .filter(({ sort }) => sort && sort.sortType === FieldSortTypes.Custom)
@@ -662,6 +665,7 @@ export class Workbench extends React.Component<
     const { queryMode: workbenchQueryMode, multiDrag } = settings
 
     const { selectedChart, cols, rows, metrics, data } = widgetProps
+    console.log(widgetProps, 'widgetProps')
     const hasDataConfig = !!(cols.length || rows.length || metrics.length)
     const maskProps: IDashboardItemMaskProps = {
       loading: dataLoading,
