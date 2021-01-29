@@ -1,3 +1,11 @@
+/*
+ * @Author: your name
+ * @Date: 2020-12-21 17:56:09
+ * @LastEditTime: 2021-01-28 18:07:41
+ * @LastEditors: your name
+ * @Description: In User Settings Edit
+ * @FilePath: /davinci-fork/davinci/webapp/app/containers/Widget/components/Pivot/node.ts
+ */
 class Node {
   data: any
   value: any

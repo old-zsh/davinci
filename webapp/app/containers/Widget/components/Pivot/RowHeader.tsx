@@ -28,6 +28,11 @@ export class RowHeader extends React.Component<IRowHeaderProps, {}> {
   public render () {
     const { rows, rowKeys, colKeys, rowWidths, rowTree, colTree, tree, chartStyles, drawingData, dimetionAxis, metrics, metricAxisConfig, hasMetricNameDimetion } = this.props
     const { elementSize, unitMetricHeight } = drawingData
+    console.log(rowTree, 'rowTree')
+    console.log(colTree, 'colTree')
+    console.log(rowKeys, 'rowKeys')
+    console.log(colKeys, 'colKeys')
+    console.log(tree, 'tree')
     const {
       color: fontColor,
       fontSize,
