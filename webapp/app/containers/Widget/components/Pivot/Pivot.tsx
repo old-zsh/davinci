@@ -199,7 +199,6 @@ export class Pivot extends React.PureComponent<IPivotProps, IPivotStates> {
 
   private getRenderData = (props) => {
     const { width, height, cols, rows, metrics, data, xAxis, dimetionAxis } = props
-    console.log(props, 'Pivot props')
     this.rowHeaderWidths = rows.map((r) => getPivotContentTextWidth(r, 'bold'))
     if (!cols.length && !rows.length) {
       this.tree[0] = data.slice()
@@ -229,7 +228,6 @@ export class Pivot extends React.PureComponent<IPivotProps, IPivotStates> {
       )
 
       const treeData = this.getTreeData()
-      console.log(treeData, 'treeData')
       this.recordGrouping(props, treeData)
       this.metricAxisConfig = metrics.reduce((obj: IMetricAxisConfig, m) => {
         const { yAxisMin, yAxisMax, scatterXAxisMin, scatterXAxisMax, sizeMin, sizeMax } = this.groupedData[m.name]
@@ -274,7 +272,6 @@ export class Pivot extends React.PureComponent<IPivotProps, IPivotStates> {
   }
 
   private getRowKeyAndColKey = (props: IPivotProps, record: object, hasDimetionAxis: boolean) => {
-    console.log(props, 'props')
     const { cols, rows, metrics } = props
 
     const rowKey = []
@@ -287,8 +284,6 @@ export class Pivot extends React.PureComponent<IPivotProps, IPivotStates> {
       metricNames.push('无指标值')
     }
 
-    console.log(metricNames, 'metricNames')    // ["总停留时间@davinci@AFDD3369@davinci@sum"]
-    console.log(rows,rows.findIndex((r) => r.name === '指标名称'),record, 'rows的值')
     if (~rows.findIndex((r) => r.name === '指标名称')) {
       metricNames.forEach((mn) => {
         const keyArr = []
@@ -335,7 +330,6 @@ export class Pivot extends React.PureComponent<IPivotProps, IPivotStates> {
       })
       flatColKeys = [colKey.join(String.fromCharCode(0))]
     }
-    console.log(flatRowKeys,flatColKeys, 'Pivot flatRowKeys,flatColKeys')
     flatRowKeys.forEach((flatRowKey) => {
       flatColKeys.forEach((flatColKey) => {
         if (rowKey.length) {
@@ -398,7 +392,6 @@ export class Pivot extends React.PureComponent<IPivotProps, IPivotStates> {
         }
       })
     })
-    console.log(this.tree, 'Pivot tree')
     
   }
 
