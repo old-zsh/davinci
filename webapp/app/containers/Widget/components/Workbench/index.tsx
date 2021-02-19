@@ -455,7 +455,7 @@ export class Workbench extends React.Component<
   private setWidgetProps = (widgetProps: IWidgetProps) => {
     const { cols, rows } = widgetProps
     const data = [...(widgetProps.data || this.state.widgetProps.data)]
-    console.log(data,widgetProps, 'setWidgetProps data')
+    // console.log(data,widgetProps, 'setWidgetProps data')
     const customOrders = cols
       .concat(rows)
       .filter(({ sort }) => sort && sort.sortType === FieldSortTypes.Custom)

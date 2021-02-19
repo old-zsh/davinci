@@ -1295,10 +1295,10 @@ export class OperatingPanel extends React.Component<
           const colGroup = cols.items.map((item)=>item.name)
           const tagGroup = ['sum(总停留时间)']
           const originList = result.resultList
-          console.log(rowGroup,colGroup,originList, '测试的值 1')
-          const { originObj } = tree.getCompluteJson(rowGroup,colGroup,originList)
-          console.log(originObj,  '测试的值 2')
-          result.resultList = this.makeOriginJson(originObj,rowGroup , colGroup,  tagGroup)
+          // console.log(rowGroup,colGroup,originList, '测试的值 1')
+          const { widgetProps: { transformedWideTableList } } = tree.getCompluteJson(rowGroup,colGroup,originList)
+          // console.log(transformedWideTableList,  '测试的值 2')
+          result.resultList = this.makeOriginJson(transformedWideTableList,rowGroup , colGroup,  tagGroup)
           let { resultList: data, pageNo, pageSize, totalCount } = result
           
           updatedPagination = !updatedPagination.withPaging

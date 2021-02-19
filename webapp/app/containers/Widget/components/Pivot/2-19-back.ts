@@ -1,3 +1,11 @@
+/*
+ * @Author: your name
+ * @Date: 2021-02-19 13:57:46
+ * @LastEditTime: 2021-02-19 13:57:54
+ * @LastEditors: Please set LastEditors
+ * @Description: In User Settings Edit
+ * @FilePath: /davinci-fork/davinci/webapp/app/containers/Widget/components/Pivot/2-19-back.ts
+ */
 import Node from './node'
 import cloneDeep from 'lodash/cloneDeep'
 import { isRowColLastLevel, getOriginKey, isColRowMermber, isSumNodeStartReg,isSumLastNode, isQuotaSum, isSumNodeEnd, isNodeIncludeArray, isSumNodeEndReg } from './util'
@@ -440,9 +448,7 @@ class MultiwayTree {
       if (typeof currentNode !== 'object' || !currentNode) {
         return currentNode
       }
-      if(parentNode.key === 'name_level3_0'){
-        debugger
-      }
+
       let newNode: any = Array.isArray(currentNode) ? [] : new Node({})
       const copyParems = {
         deepCopy,
@@ -492,21 +498,17 @@ class MultiwayTree {
   }
 
   public addTotalNodeToTree() {
-    const rowColConcat = [...this.widgetProps.rowArray, ...this.widgetProps.colArray,...this.widgetProps.rootArray]
+    const rowColConcat = [...this.widgetProps.colArray,...this.widgetProps.rowArray,...this.widgetProps.rootArray]
     rowColConcat.splice(rowColConcat.length - 2 , 1)
     const queue = [this.widgetProps.root]
     let currentNode = queue.shift()
-    console.log(rowColConcat, 'rowColConcat')
+
     while (
       currentNode &&
       rowColConcat.includes(getOriginKey(currentNode.key))
     ) {
-      if(currentNode.key === 'name_level3_0'){
-        debugger
-      }
       if (currentNode) {
         queue.push(...currentNode.children)
-       
         currentNode.children.push(
           tree.copyTotalNode(currentNode.children[0], currentNode)
         )
@@ -760,6 +762,9 @@ class MultiwayTree {
     }
   }
   public buildJson() {
+    console.log(tree, 'test测试 tree的值')
+    debugger
+
     let path = {}
     this.widgetProps.treeRootTagNodeList
       .filter((item) => item.parentName === 'noraml')
@@ -787,7 +792,7 @@ class MultiwayTree {
           }
         })
       })
-    console.log(tree, '测试 tree')
+    console.log(path, 'test测试 path')
     // 每一层进行迭代，一直迭代到最后一层
     // let pathKeyGroup = Object.keys(path); // 获取层级的key
     // pathKeyGroup.forEach((key) => {
@@ -813,6 +818,7 @@ class MultiwayTree {
 
     let group = {}
     let arrTaget = [this.widgetProps.rowArray[0], ...this.widgetProps.colArray]
+    console.log(arrTaget, 'test测试 arrTaget')
     arrTaget.reverse().forEach((level, levelIndex) => {
       group[level] = {}
       var allSumGroup
@@ -849,7 +855,7 @@ class MultiwayTree {
         group[level][item.parentName].all[firstRowLevel].push(item)
       })
     })
-
+    console.log(group,'test测试 group')
     let testArray = arrTaget.reverse()
     arrTaget.forEach((level, index) => {
       if (index == 0) {
