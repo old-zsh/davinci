@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2021-02-22 16:19:27
- * @LastEditTime: 2021-03-01 16:19:11
+ * @LastEditTime: 2021-03-01 18:53:15
  * @LastEditors: Please set LastEditors
  * @Description: In User Settings Edit
  * @FilePath: /davinci-fork/davinci/webapp/app/containers/Widget/components/Pivot/test.ts
@@ -17,10 +17,15 @@ import {
   isQuotaSum,
   isSumNodeEnd,
   isNodeIncludeArray,
-  isSumNodeEndReg
+  isSumNodeEndReg,
+  isQdReg
 } from './util'
 class MultiwayTree {
+  public group = {}
   public treePointItem = []
+  public rowPath = {}
+  public rowColTopLevelPath = {}
+  public groupWholePath = []
   public widgetProps = {
     root: null,
     wideTableList: [],
@@ -31,6 +36,7 @@ class MultiwayTree {
     transformedWideTableList: [],
     treeRootTagNodeList: []
   }
+  public arrTarget = []
   public treeOption = {
     treePointItem: [],
     hasSameParent: false,
@@ -779,6 +785,10 @@ class MultiwayTree {
     this.widgetProps.root = null
     this.widgetProps.treeRootTagNodeList = []
     this.widgetProps.transformedWideTableList = []
+    this.arrTarget = [
+      this.widgetProps.rowArray[0],
+      ...this.widgetProps.colArray
+    ]
   }
 
   public getCompluteJson(rowGroup, colGroup, wideTableList) {
@@ -788,6 +798,7 @@ class MultiwayTree {
     tree.getTreeRootOfTag()
     tree.calcSumNodeDFS()
     tree.buildJson()
+    tree.getJson()
     return tree
   }
 
@@ -862,9 +873,9 @@ class MultiwayTree {
     const isDifferMoreKey = Array.from(new Set(valueOfKey)).length > 1
     // 对应的相同的多个
 
-    if (isSameMoreCountValueOne && isDifferMoreKey) {
-      console.log('倒叙')
-    }
+    // if (isSameMoreCountValueOne && isDifferMoreKey) {
+    //   console.log('倒叙')
+    // }
 
     if (
       valueCountGroupOne.length > 1 &&
@@ -906,9 +917,20 @@ class MultiwayTree {
       }
     }
   }
-  public buildJson() {
-    let path = {}
-
+  public getFirstNotSumLevel(item) {
+    const getParent = (node) => {
+      if (
+        getOriginKey(node.key) ==
+        tree.decideColBranchBreakUp(this.rowPath, item.parentName)
+          .branchBreakUpLevel
+      )
+        return node.value
+      node = node.parent
+      return getParent(node)
+    }
+    return getParent(item)
+  }
+  public getRowPath() {
     this.widgetProps.treeRootTagNodeList
       .filter((item) => item.parentName === 'noraml')
       .forEach((o) => {
@@ -917,26 +939,19 @@ class MultiwayTree {
         arr.forEach((key, index) => {
           let newKey = `${newObj[key]}_${key}`
           if (index < arr.length - 1) {
-            if (!path[newKey]) {
-              path[newKey] = []
+            if (!this.rowPath[newKey]) {
+              this.rowPath[newKey] = []
             }
             const child = `${newObj[arr[index + 1]]}_${arr[index + 1]}`
-            if (!path[newKey].includes(child)) {
-              path[newKey].push(child)
+            if (!this.rowPath[newKey].includes(child)) {
+              this.rowPath[newKey].push(child)
             }
-          } else {
-            // if (!path[newKey]) {
-            //   path[newKey] = [];
-            // }
-            // const child = `${newObj[arr[index]]}_${arr[index]}`;
-            // if (!path[newKey].includes(child)) {
-            //   path[newKey].push(child);
-            // }
           }
         })
       })
+  }
+  public getTopRowAndColMatchPath() {
     // 行列首行 path关系，判定 是聚合离散关系 start
-    let rowColTopLevelPath = {}
     this.widgetProps.treeRootTagNodeList
       .filter((item) => item.parentName === 'noraml')
       .forEach((o) => {
@@ -946,27 +961,19 @@ class MultiwayTree {
         arr.forEach((key, index) => {
           let newKey = `${newObj[key]}_${key}`
           if (index < arr.length - 1) {
-            if (!rowColTopLevelPath[newKey]) {
-              rowColTopLevelPath[newKey] = []
+            if (!this.rowColTopLevelPath[newKey]) {
+              this.rowColTopLevelPath[newKey] = []
             }
             const child = `${newObj[arr[index + 1]]}_${arr[index + 1]}`
-            if (!rowColTopLevelPath[newKey].includes(child)) {
-              rowColTopLevelPath[newKey].push(child)
+            if (!this.rowColTopLevelPath[newKey].includes(child)) {
+              this.rowColTopLevelPath[newKey].push(child)
             }
-          } else {
-            // if (!path[newKey]) {
-            //   path[newKey] = [];
-            // }
-            // const child = `${newObj[arr[index]]}_${arr[index]}`;
-            // if (!path[newKey].includes(child)) {
-            //   path[newKey].push(child);
-            // }
           }
         })
       })
 
     // 每一层进行迭代，一直迭代到最后一层
-    let pathKeyGroup = Object.keys(rowColTopLevelPath).filter((item) =>
+    let pathKeyGroup = Object.keys(this.rowColTopLevelPath).filter((item) =>
       isSumNodeEndReg(this.widgetProps.rowArray[0], item)
     ) // 获取层级的key
     pathKeyGroup.forEach((key) => {
@@ -984,217 +991,121 @@ class MultiwayTree {
         return Array.from(new Set([currentNode, ...queue]))
       }
 
-      rowColTopLevelPath[key] = iteration(
-        rowColTopLevelPath,
-        rowColTopLevelPath[key]
+      this.rowColTopLevelPath[key] = iteration(
+        this.rowColTopLevelPath,
+        this.rowColTopLevelPath[key]
       )
     })
-
-    const rowColSort = (rowColTopLevelPath) => {
-      let firstColLevel = Object.keys(rowColTopLevelPath).filter((item) =>
-      isSumNodeEndReg(this.widgetProps.rowArray[0], item))
-      // 分散对应的key 2对应1级，value值只有一个
-      const isKeyOfValueNumber = firstColLevel.every((k)=>{
-        return rowColTopLevelPath[k].length == 1
-      })
-      let isBreakTree
-      const isValueCount = firstColLevel.some((h)=>{
-        return rowColTopLevelPath[h].length>1
-      })
-      if(isValueCount){
-        isBreakTree  =  !isValueCount
-        console.log(isBreakTree, 'rowColTopLevelPath isBreakTree')
-      } else {
-        isBreakTree = firstColLevel.some((h)=>{
-          const isDifferKey: any = Object.keys(rowColTopLevelPath).filter((s)=>{
-            return rowColTopLevelPath[s].includes(rowColTopLevelPath[h][0])
-          }).filter((a)=> isSumNodeEndReg(this.widgetProps.rowArray[0], a))
-          const isDifferMoreKey = Array.from(new Set(isDifferKey)).length == isDifferKey.length
-          const isSameMoreValue = Object.values(rowColTopLevelPath).flat(Infinity).filter((d)=>d ==rowColTopLevelPath[h][0]).length > 1
-          return isDifferMoreKey && isSameMoreValue
-        })
-        console.log(isBreakTree, 'rowColTopLevelPath isBreakTree')
-      }
-      // 对比value，存在多个value
-      return isBreakTree
-    }
-    const rowColSort2 = (rowColTopLevelPath) => {
-      let firstColLevel = Object.keys(rowColTopLevelPath).filter((item) => isSumNodeEndReg(this.widgetProps.rowArray[0], item))
-
-      const isValueCount = firstColLevel.some((h)=>{
-        const targetKey = Object.keys(this.treeOption.treeAllPath).filter((l)=> isSumNodeStartReg(l, h))[0]
-        const endKey = this.treeOption.treeAllPath[targetKey].reduce((pre,cur)=>{
-          const key = cur.split(',')[this.widgetProps.colArray.length-1]
-          return pre = [...pre,key]
-        },[])
-        
+  }
+  public isMergeOrSplice() {
+    return Object.keys(this.rowColTopLevelPath)
+      .filter((item) => isSumNodeEndReg(this.widgetProps.rowArray[0], item))
+      .some((h) => {
+        const targetKey = Object.keys(this.treeOption.treeAllPath).filter((l) =>
+          isSumNodeStartReg(l, h)
+        )[0]
+        const endKey = this.treeOption.treeAllPath[targetKey].reduce(
+          (pre, cur) => {
+            const key = cur.split(',')[this.widgetProps.colArray.length - 1]
+            return (pre = [...pre, key])
+          },
+          []
+        )
         return Array.from(new Set(endKey)).length > 1
       })
-      // this.treeOption.treeAllPath
-      return isValueCount
-    }
-    // rowColSort2(rowColTopLevelPath)
-    console.log(rowColTopLevelPath, 'rowColTopLevelPath  2')
-    let group = {}
-    let arrTaget = [this.widgetProps.rowArray[0], ...this.widgetProps.colArray]
-    arrTaget.reverse().forEach((level, levelIndex) => {
-      group[level] = {}
-      let sumGroup = this.widgetProps.treeRootTagNodeList.filter((item) => {
-        return (
-          item.parentLevel === level &&
-          item.parentName !== 'noraml' &&
-          !this.widgetProps.rowArray.includes(item.startLevel)
-        )
-        // || (item.parentName !== 'noraml' &&  this.widgetProps.rowArray.includes(item.startLevel) && item.parent.value === '合计')
-      })
-
-      sumGroup.forEach((item) => {
-        if (!group[level].hasOwnProperty(item.parentName)) {
-          group[level][item.parentName] = {
-            all: {}
-          }
-        }
- 
-        const getParent = (node) => {
-          if (
-            getOriginKey(node.key) == tree.decideColBranchBreakUp(
-              path,
-              item.parentName
-            ).branchBreakUpLevel
-          )
-            return node.value
-          node = node.parent
-          return getParent(node)
-        }
-        const firstRowLevel = getParent(item)
-        // const getFirstNotSums = (node) => {
-        //   const getFirstNotSum = (node) => {
-        //     if (!isSumNodeEnd(node.key)) return node
-
-        //     node = node.parent
-        //     return getFirstNotSum(node)
-        //   }
-        //   return getFirstNotSum(node)
-        // }
-        if(item.key == 'sum(总停留时间)_343sum'){
-          debugger
-        }
-        const isExitedSum = !group[level][item.parentName].all[firstRowLevel] && firstRowLevel !== '总和'
+  }
+  public buildWholePath(){
+    this.groupWholePath =  Object.keys(this.treeOption.treeAllPath).reduce(
+      (pre: any, cur: any) => {
+        const keyGroup = this.treeOption.treeAllPath[cur].map((item) => {
+          return `${item},${cur}`.split(',')
+        })
+        return (pre = [...pre, ...keyGroup])
+      },
+      []
+    )
    
-        if ( isExitedSum ) {
-          if(rowColSort2(rowColTopLevelPath) && (level !==this.widgetProps.rowArray[0])){
-            group[level][item.parentName].all[firstRowLevel] = {}
-          
-          } else {
-            group[level][item.parentName].all[firstRowLevel] = []
-          }
-          // group[level][item.parentName].all[firstRowLevel] = []
-        } 
-        const buildAllPath = ()=>{
-          const result =  Object.keys(this.treeOption.treeAllPath).reduce((pre: any,cur: any)=>{
-            const keyGroup = this.treeOption.treeAllPath[cur].map((item)=>{
-              return `${item},${cur}`.split(',')
-            })
-            return pre = [...pre, ...keyGroup]
-          },[])
-          return result
-        }
-        const buildGroupTop = (index) => {
-          console.log(buildAllPath(), 'buildAllPath()')
-          const isTopLevel = buildAllPath().reduce((pre,cur)=>{
-            pre = cur.includes(item.parentName) ? [...pre, cur[cur.length - index]] : [...pre]
-            return Array.from(new Set(pre))
-          },[])
-          if(isTopLevel.length > 1 || (isTopLevel.length ==1 && index !==1)) {
-          
-            const isQdType = buildAllPath().reduce((pre,cur)=>{
-              pre = cur.includes(item.parentName) ? [...pre, cur[cur.length - index]] : [...pre]
-              return Array.from(new Set(pre))
-            },[])
-            const isQDReg = (item, key) => {
-              let reg = RegExp(item + '(?=)S*', 'g')
-              return reg.test(key)
-            }
-            const getTopNewPart = (q) => {
-              if (getOriginKey(q.key) === this.widgetProps.rowArray[index - 1]) return q
-                q = q.parent
-                return getTopNewPart(q)
-            }
-            if(isQdType.every((a)=> isQDReg('QD', a))){  // 待补充两字符串最大公共序列
-              index --
+  }
+  public partTopGroup(item,index){
+    return  this.groupWholePath.reduce((pre, cur) => {
+      pre = cur.includes(item.parentName)
+        ? [...pre, cur[cur.length - index]]
+        : [...pre]
+      return Array.from(new Set(pre))
+    }, [])
+   
+  }
+  public getTopNewPart(item,index){
+    if (getOriginKey(item.key) === this.widgetProps.rowArray[index - 1])
+      return item
+    item = item.parent
+    return tree.getTopNewPart(item,index)
+  }
+  public setGroup(level) {
+    this.group[level] = {}
+    const sumGroup = this.widgetProps.treeRootTagNodeList.filter(
+      (item) =>
+        item.parentLevel === level &&
+        item.parentName !== 'noraml' &&
+        !this.widgetProps.rowArray.includes(item.startLevel)
+      // || (item.parentName !== 'noraml' &&  this.widgetProps.rowArray.includes(item.startLevel) && item.parent.value === '合计')
+    )
 
-              this.treeOption.topNewPartType = getTopNewPart(item).value
-            } else {
-              this.treeOption.topNewPartType = getTopNewPart(item).value
-            }
-           
-            if(!group[level][item.parentName].all[firstRowLevel][this.treeOption.topNewPartType]){
-              group[level][item.parentName].all[firstRowLevel][this.treeOption.topNewPartType] = []
-            }
-            return 
+    sumGroup.forEach((item) => {
+      const firstNotSum = tree.getFirstNotSumLevel(item)
+      if (firstNotSum !== '总和') {
+        if (!this.group[level].hasOwnProperty(item.parentName)) {
+          if (tree.isMergeOrSplice()) {
+            this.group[level][item.parentName] = {}
+          } else {
+            this.group[level][item.parentName] = []
           }
-          index ++ 
+        }
+
+
+        const buildGroupTop = (index) => {
+          const partTopGroup = tree.partTopGroup(item,index)
+          if (
+            partTopGroup.length > 1 ||
+            (partTopGroup.length == 1 && index !== 1)
+          ) {
+           
+            if (partTopGroup.every((a) => isQdReg('QD', a))) { // 待补充两字符串最大公共序列
+              index--
+            }
+            this.treeOption.topNewPartType = tree.getTopNewPart(item,index).value
+            let topNewPartTypeItem = this.group[level][item.parentName][this.treeOption.topNewPartType]
+            if (!topNewPartTypeItem) {
+              topNewPartTypeItem = []
+            }
+            return
+          }
+          index++
           return buildGroupTop(index)
         }
 
-        if(firstRowLevel !== '总和'){
-          buildGroupTop(1)
-        }
-        
         // if(firstRowLevel !== '总和' && (getOriginKey(getFirstNotSums(item.parent).key) !== this.widgetProps.rowArray[0])){
-        if (firstRowLevel !== '总和') {
-          // group[level][item.parentName].all[firstRowLevel].push(item)
-          // if(levelIndex > 9 && (levelIndex !==arrTaget.length-1)){
-
-          // } else {
-
-          // if(!Object.keys(group[level][item.parentName].all).length){
-          //   const targetKey = Object.keys(path).filter((key)=>{
-          //     return isSumNodeStartReg(item.parentName, key)
-          //   })[0] // 线上渠道_name_level1  // 从firstRowLevel找到 path中对应的下一级[]  线上渠道_name_level1: ["基础上线工作_name_level2"]
-
-          //   let key
-          //   let groupMathKey = []
-
-          //   groupMathKey = path[targetKey].reduce((pre,cur)=>{       // item: "基础上线工作_name_level2"
-          //     key = Object.keys(group).filter((o)=>{
-          //       return isSumNodeEndReg(o,cur)
-          //     })[0]  // name_level2
-          //     let test = Object.keys(group[key]).filter((d)=>{
-          //       return isSumNodeStartReg(d,cur)
-          //     }) // [基础上线工作]
-          //     return pre = [...pre,...test]
-          //   },groupMathKey)
-
-          //   group[level][item.parentName].all = groupMathKey.reduce((pre,cur)=>{
-          //     const item = group[key][cur].all
-
-          //     Object.keys(item).forEach((k)=>{
-          //       pre[k] = pre[k] ? [...pre[k],item[k].pop()] : [item[k].pop()]
-          //     })
-
-          //     return pre = pre
-          //   },group[level][item.parentName].all)
-          // }
-         
-          // console.log(this.treeOption.treeAllPath,rowColSort2(rowColTopLevelPath), 'this.treeOption.treeAllPath')
-          if(rowColSort2(rowColTopLevelPath) && (level !==this.widgetProps.rowArray[0])){
-            group[level][item.parentName].all[firstRowLevel][this.treeOption.topNewPartType].push(item)
-          } else {
-            group[level][item.parentName].all[firstRowLevel].push(item)
-          }
-          
+        buildGroupTop(1)
+        if (tree.isMergeOrSplice() && level !== this.widgetProps.rowArray[0]) {
+          this.group[level][item.parentName][
+            this.treeOption.topNewPartType
+          ].push(item)
+        } else {
+          this.group[level][item.parentName][
+            this.treeOption.topNewPartType
+          ].push(item)
         }
-      })
+      }
     })
-    console.log(group, '测试 group')
-    let testArray = arrTaget.reverse()
-    arrTaget.forEach((level, index) => {
+    console.log(this.group, 'this.group')
+  }
+  public changePosition() {
+    this.arrTarget.reverse().forEach((level, index) => {
       if (index == 0) {
-        const levelGroup = Object.values(group[level])
+        const levelGroup = Object.values(this.group[level])
         levelGroup.pop()
         const concatArray: any = levelGroup.reduce((pre: any, cur: any) => {
-          return (pre = [...pre, ...Object.values(cur.all)])
+          return (pre = [...pre, ...Object.values(cur)])
         }, [])
 
         const firstArr = concatArray.flat(Infinity)
@@ -1209,61 +1120,29 @@ class MultiwayTree {
           this.widgetProps.treeRootTagNodeList.splice(isExitedIndex, 1)
         })
       } else {
-
-        delete group[level]['合计']
-        const levelGroup = Object.values(group[level])
-        console.log(levelGroup, 'levelGroup')
-        levelGroup.forEach((obj: any) => {
-
-          const group: any = Object.values(obj.all)
-          let findIndex
+        delete this.group[level]['合计']
+        Object.values(this.group[level]).forEach((obj: any) => {
           const getEndArray = (origin) => {
-            if(Array.isArray(origin) && origin.every((item)=>Array.isArray(item))) return origin 
-            if(Object.prototype.toString.call(origin) === '[object Object]'){
+            if (
+              Array.isArray(origin) &&
+              origin.every((item) => Array.isArray(item))
+            )
+              return origin
+            if (Object.prototype.toString.call(origin) === '[object Object]') {
               origin = Object.values(origin)
             } else {
-              origin = origin.map((j)=>Object.values(j)) 
+              origin = origin.map((j) => Object.values(j))
             }
-           
+
             return getEndArray(origin)
           }
-          console.log(rowColSort2(rowColTopLevelPath),getEndArray(obj.all),getEndArray(obj.all)[0][0],'1111111111111')
-          let flatGroup: any = getEndArray(obj.all).flat(Infinity)
-          const count = rowColSort2(rowColTopLevelPath) ? getEndArray(obj.all)[0][0].length - 2 : flatGroup.length - 2 
-          // const count = 
-          findIndex = this.widgetProps.treeRootTagNodeList.findIndex(
+          let flatGroup: any = getEndArray(obj).flat(Infinity)
+          const count = tree.isMergeOrSplice()
+            ? getEndArray(obj)[0].length - 2
+            : flatGroup.length - 2
+          const findIndex = this.widgetProps.treeRootTagNodeList.findIndex(
             (o) => o === flatGroup[count]
           )
-           // const test = Object.keys(group[level]).reduce((pre: any, key: any) => {
-        //   let flatGroup: any = Object.values(group[level][key].all).flat(
-        //     Infinity
-        //   )
-        //   pre[key] = tree.decideRowForwardOrBack(path, flatGroup[0].parentName)
-        //   return pre
-        // }, {})
-          // if(backCount > (Object.values(test).length - backCount)){
-          //   findIndex = this.widgetProps.treeRootTagNodeList.findIndex((o) =>
-          //     o === flatGroup[0]
-          //   )
-          // } else {
-          // const isBackTree = tree.getMultipleGroupSamePart(this.treeOption.treeAllPath)
-          // if(isBackTree){
-          //   // const maxLength: any = group.reduce((pre: any,cur: any)=>{
-          //   //   return pre = Math.min(pre, cur.length)
-          //   // },0)
-
-          //   const count = group[0].lnegth -1
-          //   findIndex = this.widgetProps.treeRootTagNodeList.findIndex((o) =>
-          //     o === flatGroup[count]
-          //   )
-          // } else {
-          //   debugger
-          //   const count = flatGroup.length-1
-          //   findIndex = this.widgetProps.treeRootTagNodeList.findIndex((o) =>
-          //     o === flatGroup[count]
-          //   )
-          // }
-          // }
           this.widgetProps.treeRootTagNodeList.splice(
             findIndex,
             0,
@@ -1278,7 +1157,18 @@ class MultiwayTree {
         })
       }
     })
-    
+  }
+  public buildJson() {
+    tree.getRowPath()
+    tree.getTopRowAndColMatchPath()
+    tree.buildWholePath()
+    this.arrTarget.reverse().forEach((level) => {
+      tree.setGroup(level)
+    })
+    debugger
+    tree.changePosition()
+  }
+  public getJson() {
     this.widgetProps.treeRootTagNodeList.forEach((item) => {
       const obj = {}
       const iteration = (item, obj) => {
@@ -1295,6 +1185,7 @@ class MultiwayTree {
     })
   }
 }
+
 let tree = new MultiwayTree()
 
 export default tree
