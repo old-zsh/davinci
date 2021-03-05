@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2021-02-22 16:19:27
- * @LastEditTime: 2021-02-22 16:19:41
+ * @LastEditTime: 2021-03-05 16:41:21
  * @LastEditors: Please set LastEditors
  * @Description: In User Settings Edit
  * @FilePath: /davinci-fork/davinci/webapp/app/containers/Widget/components/Pivot/test.ts
@@ -1032,3 +1032,175 @@ class MultiwayTree {
 let tree = new MultiwayTree()
 
 export default tree
+let mockJson = [
+	["线上渠道", "Android",'1', "基础上线工作"],
+    ["线上渠道", "Android", '1',"合计"],
+	["线上渠道", "IOS", '2', "基础上线工作"],
+    ["线上渠道", "IOS", '2',"合计"],
+	["线上渠道", "移动浏览器",'3', "基础上线工作"],
+    ["线上渠道", "移动浏览器",'3', "合计"],
+    ["线上渠道", "合计", "合计",'合计'],
+	
+	
+	
+	["新媒体营销", "Android", '1', "事件营销"],
+	["新媒体营销", "IOS", '2',"事件营销"],
+	["新媒体营销", "移动浏览器",'3', "事件营销"],
+	["新媒体营销", "Android", '1', "微博推广"],
+	["新媒体营销", "IOS",  '2',"微博推广"],
+	["新媒体营销", "移动浏览器",  '3',"微博推广"],
+	["新媒体营销", "Android", '1', "品牌基础推广"],
+	["新媒体营销", "IOS",  '2',"品牌基础推广"],
+	["新媒体营销", "Android",  '1',"轮台、贴吧推广"],
+	["新媒体营销", "IOS",  '2',"轮台、贴吧推广"],
+	["新媒体营销", "移动浏览器", '3', "轮台、贴吧推广"],
+	["新媒体营销", "Android", '1', "微信推广"],
+	["新媒体营销", "IOS",  '2',"微信推广"],
+	["新媒体营销", "移动浏览器", '3', "微信推广"],
+	["线下渠道", "Android",  '1',"手机厂商预装"],
+	["线下渠道", "IOS",  '2',"手机厂商预装"],
+	["线下渠道", "移动浏览器", '3', "手机厂商预装"],
+	["线下渠道", "Android", '1', "水货刷机"],
+	["线下渠道", "IOS", '2', "水货刷机"],
+	["线下渠道", "移动浏览器",  '3',"水货刷机"],
+	["新媒体营销", "移动浏览器", '3', "品牌基础推广"],
+	["线下渠道", "Android",  '1',"行货店面"],
+	["线下渠道", "IOS", '2', "行货店面"],
+	["线下渠道", "移动浏览器", '3', "行货店面"],
+	["线下渠道", "合计", "合计", '合计'],
+	["线下渠道", "Android",  '1',"合计"],
+	["线下渠道", "IOS",  '2',"合计"],
+	["线下渠道", "移动浏览器", '3', "合计"],
+	
+	["新媒体营销", "合计", "合计","合计"],
+	["总和", "总和", "总和"，'总和'],
+	["新媒体营销", "Android", '1', "合计"],
+	["新媒体营销", "IOS",  '2',"合计"],
+	["新媒体营销", "移动浏览器", '3', "合计"]
+]
+
+
+// const resolveJson = (mockJson) => {
+//   let mockObj = {}
+//      mockJson.forEach((item)=>{
+//          let testObj = {}
+//           testObj = item.reduce((pre,cur)=>{
+//             if(!pre.hasOwnProperty(cur)){
+//               pre[cur] = {}
+//             }
+//             pre = pre[cur]
+//           },testObj)
+//      })
+  
+//   console.log(mockObj, 'mockObj')
+// }
+
+// const resolveJson = (mockJson) => {
+//   console.log(mockJson, 'mockJson')
+//   let divideGroup
+// //   const divideiteration = (mockJson,idx) => {
+// //     divideGroup = mockJson.reduce((pre,cur)=>{
+// //       cur = cur.reduce((pre2,cur2)=>{
+// //          if(!pre2.flat(Infinity).includes(cur2[idx])){
+// //             let cellArray = []
+// //             cellArray.push(cur2)
+// //             pre2.push(cellArray)
+// //           } else {
+// //             const exitIdx = pre2.findIndex((arr)=>{
+// //               return arr.flat(Infinity).includes(cur2[idx])
+// //             })
+// //             pre2[exitIdx].push(cur2)
+// //           }
+// //          pre2 = [...pre2, cur2]
+// //       },[])
+// //       return pre = [...pre, cur]
+// //     },[])
+// //   }
+//   const iteration2 = (mockJson,idx) =>{
+//     divideGroup = mockJson.reduce((pre,cur)=>{
+//       if(cur.every((e)=> Array.isArray(e)))  {
+//         idx --
+//         return iteration2(divideGroup,idx)
+//       }
+//       if(!pre.flat(Infinity).includes(cur[idx])){
+//          let cellArray = []
+//          cellArray.push(cur)
+//          pre.push(cellArray)
+//       } else {
+//          const exitIdx = pre.findIndex((arr)=>{
+//            return arr.flat(Infinity).includes(cur[idx])
+//          })
+//          pre[exitIdx].push(cur)
+//       }
+//       pre = [...pre, cur]
+//     },[])
+
+//     return divideGroup
+//   }
+//   iteration2(mockJson,0)
+  
+// //   divideiteration(mockJson,0)
+  
+//   const iteration = (divideGroup,index) => {
+//     if(index > mockJson[0].length -2) return divideGroup
+//     let divideGroups = divideGroup.reduce((pre,item)=>{
+      
+//       let selectKey = item.reduce((pre,cur)=>{
+//         return pre = Array.from(new Set([...pre,cur[index]]))
+//       },[])
+
+//       let sortArr = selectKey.reduce((pre,cur)=>{
+//         let singleGroup = item.filter((a)=> a.includes(cur))
+//          return pre = Array.from(new Set([...pre, ...singleGroup]))
+//       },[])
+//       console.log(sortArr, 'sortArr')
+//       return pre = [...pre, sortArr]
+      
+//     },[])
+//     index++
+//     iteration2(divideGroups, index)
+//     return iteration(divideGroups,index)
+//   }
+//   console.log(iteration(divideGroup,1), '5555')
+// }
+
+// resolveJson(mockJson)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

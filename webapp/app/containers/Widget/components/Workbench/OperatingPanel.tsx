@@ -1300,7 +1300,6 @@ export class OperatingPanel extends React.Component<
           // console.log(transformedWideTableList,  '测试的值 2')
           result.resultList = this.makeOriginJson(transformedWideTableList,rowGroup , colGroup,  tagGroup)
           let { resultList: data, pageNo, pageSize, totalCount } = result
-          
           updatedPagination = !updatedPagination.withPaging
             ? updatedPagination
             : {
