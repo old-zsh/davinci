@@ -1,11 +1,4 @@
-/*
- * @Author: your name
- * @Date: 2021-02-22 16:19:27
- * @LastEditTime: 2021-03-05 19:10:42
- * @LastEditors: Please set LastEditors
- * @Description: In User Settings Edit
- * @FilePath: /davinci-fork/davinci/webapp/app/containers/Widget/components/Pivot/test.ts
- */
+
 import Node from './node'
 import cloneDeep from 'lodash/cloneDeep'
 import {
@@ -21,11 +14,7 @@ import {
   isQdReg
 } from './util'
 class MultiwayTree {
-  public group = {}
   public treePointItem = []
-  public rowPath = {}
-  public rowColTopLevelPath = {}
-  public groupWholePath = []
   public widgetProps = {
     root: null,
     wideTableList: [],
@@ -56,8 +45,6 @@ class MultiwayTree {
       treeItem: {},
       levelIndex: 0
     },
-    treeAllPath: [],
-    topNewPartType: ''
   } as any
 
   constructor() {}
@@ -521,7 +508,6 @@ class MultiwayTree {
     }
     return tree.copyIteration(deepCopy, currentNode, parentNode, true)
   }
-
   public addTotalNodeToTree() {
     const rowColConcat = [
       ...this.widgetProps.rowArray,
@@ -546,99 +532,6 @@ class MultiwayTree {
       }
     }
   }
-  public setNodePath(node) {
-    node.path = {}
-    let nodePath = node.path
-    const iteration = (node) => {
-      if (getOriginKey(node.key) === this.widgetProps.colArray[0])
-        return nodePath
-      node = node.parent
-      nodePath[getOriginKey(node.key)] = node.value
-      return iteration(node)
-    }
-    return iteration(node)
-  }
-  public setAllNodePath(node) {
-    node.fullPath = {}
-    let nodePath = node.fullPath
-    const iteration = (node) => {
-      if (getOriginKey(node.key) === this.widgetProps.rowArray[0])
-        return nodePath
-      node = node.parent
-      nodePath[getOriginKey(node.key)] = node.value
-      return iteration(node)
-    }
-    return iteration(node)
-  }
-  // 获取 指标根节点集合
-  public getTreeRootOfTag() {
-    this.treeOption.treeAllPath = {}
-    const queue = [this.widgetProps.root]
-    const currentNode = queue.shift()
-    queue.push(...currentNode.children)
-    const iteration = (currentNode) => {
-      queue.forEach((item) => {
-        currentNode = queue.shift()
-        if (this.widgetProps.tagGroup.includes(currentNode.value)) {
-          if (!isSumNodeEnd(currentNode.key)) {
-            currentNode.parentName = 'noraml'
-            currentNode.type = 'noramlNode'
-            currentNode.path = tree.setNodePath(currentNode)
-            currentNode.fullPath = tree.setAllNodePath(currentNode)
-            const firstLevel: any = Object.values(currentNode.fullPath).pop()
-            if (!this.treeOption.treeAllPath[firstLevel]) {
-              this.treeOption.treeAllPath[firstLevel] = []
-            }
-            const array = Object.values(currentNode.fullPath)
-            array.pop()
-            this.treeOption.treeAllPath[firstLevel].push(array.join())
-          } 
-        }
-        queue.push(...currentNode.children)
-        iteration(currentNode)
-      })
-    }
-    iteration(currentNode)
-
-  }
-  public getFirstNotSums(node){
-
-      if (!isSumLastNode(node.key)) return node
-      node = node.parent
-      return tree.getFirstNotSums(node)
-    
-
-  }
-
-  public getAsRootParent(node){
-    if (node.parentId === 'name_level0_0') return node
-    node = node.parent
-    return tree.getAsRootParent(node)
-  }
-
-  public getRealParent(startNode, startNodeIndex){
-    // const startNodeGroup = this.groupWholePath.filter((item)=> item.includes(startNode.value))
-    // const  startNodeIndex =  startNodeGroup[0].indexOf(startNode.value)
-    const startSameIndex = this.groupWholePath.reduce((pre,cur)=>{
-      return pre = Array.from(new Set([...pre, cur[startNodeIndex]]))
-    },[])
-    const isBreakParent = startSameIndex.filter((item)=>{
-      const isIncludesStartArray = this.groupWholePath.filter(p => p.includes(item))
-      // const preStartNode = isIncludesStartArray.filter((s)=> s[startNodeIndex+1])
-      const preStartNode =  isIncludesStartArray.reduce((pre,cur)=>{
-        return pre =  [...pre, cur[startNodeIndex+1]]
-      },[])
-      const differPreStartNode = Array.from(new Set(preStartNode))
-      return  differPreStartNode.length > 1
-    })
-    if(isBreakParent.length > (startSameIndex.length - isBreakParent.length)){
-      return startNode.parent
-    } else {
-      return startNode
-    }
-
-
-  }
   public setNodeParentName() {
     const queue = [this.widgetProps.root]
     const currentNode = queue.shift()
@@ -647,55 +540,6 @@ class MultiwayTree {
       queue.forEach((item) => {
         currentNode = queue.shift()
         if (this.widgetProps.tagGroup.includes(currentNode.value)) {
-          // if (isSumNodeEnd(currentNode.key)) {
-        
-          //   // if (currentNode.key === 'sum(总停留时间)_07sum') {
-          //   //   debugger
-          //   // }
-
-          //   let startNode
-          //   let isFirstNotSumParent = tree.getFirstNotSums(currentNode.parent)
-          //   let isRowLastNode = this.widgetProps.rowArray[this.widgetProps.rowArray.length - 1]
-          //   currentNode.type = 'sumlNode'
-          //   if (  getOriginKey(isFirstNotSumParent.key) ==  isRowLastNode ) {
-          //     // 判断寻找第一个不是sum的parent若为rowlast，则为列总和节点，则parentLevel和parentName设置为row的第一行
-          //     startNode = isFirstNotSumParent
-          //     currentNode.parentLevel = getOriginKey(tree.getAsRootParent(currentNode).key)
-          //     currentNode.parentName = tree.getAsRootParent(currentNode).value
-          //   } else {
-          //     // 包含行总和和小计    区分正常总计和总计下面总计currentNode.parent.value === '合计'判断
-          //     // console.log(this.groupWholePath, 'this.treeOption.treeAllPath')
-              
-          //     startNode = tree.getFirstNotSum(currentNode)
-          //     if(this.widgetProps.colArray.includes(getOriginKey(startNode.key)) && getOriginKey(startNode.key) !==this.widgetProps.colArray[0]){
-          //       // if(currentNode.key === 'sum(总停留时间)_503sum'){
-          //       //   debugger
-          //       // }
-          //       const rowColConcat = [
-          //         ...this.widgetProps.rowArray,
-          //         ...this.widgetProps.colArray
-          //       ].reverse()
-          //       const findIndex = rowColConcat.indexOf(getOriginKey(startNode.key))
-          //       currentNode.parentName = tree.getRealParent(startNode, findIndex).value
-          //     } else {
-          //       currentNode.parentName = startNode.value
-          //     }
-          //     currentNode.parentLevel = getOriginKey(startNode.key)
-          //     // if (
-          //     //   !this.widgetProps.colArray.includes(
-          //     //     getOriginKey(startNode.key)
-          //     //   ) &&
-          //     //   currentNode.parent.value === '合计'
-          //     // ) {
-          //     //   startNode = currentNode.parent.parent
-          //     // }
-
-          //   }
-          //   currentNode.startLevel = getOriginKey(
-          //     startNode.children[startNode.children.length - 1].key
-          //   )
-          // }
-
           this.widgetProps.treeRootTagNodeList.push(currentNode)
         }
         queue.push(...currentNode.children)
@@ -704,19 +548,6 @@ class MultiwayTree {
     }
     iteration(currentNode)
   }
-  public getMultipleGroupSamePart(obj) {
-    let concatGroup = Object.values(obj)
-    let firstArray: any = concatGroup.shift()
-    const isEveryExited = firstArray.reduce((pre, cur) => {
-      let isOtherArrayExited = concatGroup.every((o: any) => {
-        return o.some((j) => j === cur)
-      })
-      return isOtherArrayExited ? [...pre, cur] : [...pre]
-    }, [])
-    // console.log(isEveryExited, 'isEveryExited')
-    return isEveryExited.length > 2
-  }
-
   // 筛选 非sum node并求和
   public getUnSumNodeReduceSum(children) {
     const nonSumNodeGroup = children.filter((item) => !isSumNodeEnd(item.key))
@@ -802,403 +633,6 @@ class MultiwayTree {
     // 最后searchTarget为tagNode
     return searchTarget[0].data
   }
-
-  public initWidgetProps(rowGroup, colGroup, wideTableList) {
-    this.widgetProps.rowArray = colGroup
-    this.widgetProps.colArray = rowGroup
-    this.widgetProps.wideTableList = wideTableList
-    this.widgetProps.root = null
-    this.widgetProps.treeRootTagNodeList = []
-    this.widgetProps.transformedWideTableList = []
-    this.arrTarget = [
-      this.widgetProps.rowArray[0],
-      ...this.widgetProps.colArray
-    ]
-  }
-
-  public getCompluteJson(rowGroup, colGroup, wideTableList) {
-    tree.initWidgetProps(rowGroup, colGroup, wideTableList)
-    tree.constructMultiwayTree()
-    tree.addTotalNodeToTree()
-    tree.getTreeRootOfTag()
-    tree.buildWholePath()
-    tree.setNodeParentName()
-    tree.calcSumNodeDFS()
-    // tree.buildJson()
-    tree.getJson()
-    console.log(tree,'tree')
-    return tree
-  }
-
-  public decideRowForwardOrBack(path, target) {
-    const flatPathKeyGroup = Object.keys(path).flat(Infinity)
-    const flatPathValueGroup = Object.values(path).flat(Infinity)
-    // target作为key在path中出现个数
-    const targetAsKeyCount = flatPathKeyGroup.filter((item) => {
-      return isSumNodeStartReg(target, item)
-    })
-    //target作为key在path中出现个数
-    const targetAsKeyMoreThanOne =
-      Array.from(new Set(targetAsKeyCount)).length > 1
-
-    const targetAsKeyOfVal = path[targetAsKeyCount[0]]
-    let isType
-    // 倒叙情况，targetAsKeyOfVal只有一个
-    if (targetAsKeyOfVal.length == 1) {
-      // 倒叙
-      // 查找存在这个值,在path作为value存在多少个，
-      const valOfCount = flatPathValueGroup.filter((item) => {
-        return item === targetAsKeyOfVal[0]
-      })
-      const isValOfcountMoreOne = Array.from(new Set(valOfCount)).length == 1
-      if (valOfCount.length >= 1 && isValOfcountMoreOne) {
-        isType = 'back'
-      }
-    } else {
-      // 正序 判断value值各不相同
-      let targetAsKeyOfValMoreThanOne =
-        Array.from(new Set(targetAsKeyOfVal)).length > 1
-      // 判断多个value对应的key是相同的
-      let isValueOfKeyIsSame = targetAsKeyOfVal.every((item) => {
-        return (
-          // target为新媒体营销 ，右侧为新媒体营销_name_level2
-          target ===
-          flatPathKeyGroup.filter((o) => {
-            return path[o].includes(item)
-          })[0]
-        )
-      })
-      if (targetAsKeyOfValMoreThanOne) {
-        isType = 'forward'
-      }
-    }
-    return isType
-  }
-
-  public decideColBranchBreakUp(path, value) {
-    let branchBreakUpLevel
-    const flatPathValueGroup = Object.values(path).flat(Infinity)
-    // 倒叙: value-基础上线工作,查找path中基础上线工作为value的值
-    const valueCountGroupOne = flatPathValueGroup.filter((item) => {
-      return isSumNodeStartReg(value, item)
-    }) // ["基础上线工作_name_level2","基础上线工作_name_level2","基础上线工作_name_level2","基础上线工作_name_level2","基础上线工作_name_level2"]
-
-    // 判断value值是否为同一个
-    const isSameMoreCountValueOne =
-      Array.from(new Set(valueCountGroupOne)).length == 1
-
-    // 对应的key值，此处判断是否为不同的多个 ["运营商_name_level3", "PC_name_level3", "Wap_name_level3", "AppStore_name_level3", "Android AppStore_name_level3"]
-    let valueOfKey = Object.keys(path).filter((key) => {
-      return path[key].some((item) => isSumNodeStartReg(value, item))
-    })
-    // 查找此对对应的key在path出现的次数
-    const valueOfKeyOfValueCount = flatPathValueGroup.filter(
-      (item) => item === valueOfKey[0]
-    )
-    const isSameMoreCountValueTwo =
-      Array.from(new Set(valueOfKeyOfValueCount)).length == 1
-    // key
-    const isDifferMoreKey = Array.from(new Set(valueOfKey)).length > 1
-    // 对应的相同的多个
-
-    // if (isSameMoreCountValueOne && isDifferMoreKey) {
-    //   console.log('倒叙')
-    // }
-
-    if (
-      valueCountGroupOne.length > 1 &&
-      isSameMoreCountValueOne &&
-      isDifferMoreKey
-    ) {
-      // 子为value相同的多个
-      branchBreakUpLevel = [
-        ...this.widgetProps.rowArray,
-        ...this.widgetProps.colArray
-      ].find((item) => isSumNodeEndReg(item, valueOfKey[0]))
-      return {
-        branchBreakUpLevel: branchBreakUpLevel,
-        isBranchBreakUp: true
-      }
-    } else if (valueOfKeyOfValueCount.length > 1 && isSameMoreCountValueTwo) {
-      const itration = (test, value) => {
-        if (Array.from(new Set(test)).length == test.length)
-          return [
-            ...this.widgetProps.rowArray,
-            ...this.widgetProps.colArray
-          ].find((item) => isSumNodeEndReg(item, value))
-        test = Object.keys(path).filter((key) => {
-          // value对应的key的集合
-          return path[key].some((item) => item === value)
-        })
-        return itration(test, test[0])
-      }
-      return {
-        branchBreakUpLevel: branchBreakUpLevel
-          ? branchBreakUpLevel
-          : itration(valueOfKeyOfValueCount, valueOfKeyOfValueCount[0]),
-        isBranchBreakUp: true
-      }
-    } else {
-      return {
-        branchBreakUpLevel: this.widgetProps.rowArray[0],
-        isBranchBreakUp: false
-      }
-    }
-  }
-  public getFirstNotSumLevel(item) {
-    if (!isSumLastNode(item.key) && !isSumNodeEnd(item.key)) return item
-    item = item.parent
-    return tree.getFirstNotSumLevel(item)
-  }
-  public getRowPath() {
-    this.widgetProps.treeRootTagNodeList
-      .filter((item) => item.parentName === 'noraml')
-      .forEach((o) => {
-        let arr = Object.keys(o.path).reverse()
-        let newObj = o.path
-        arr.forEach((key, index) => {
-          let newKey = `${newObj[key]}_${key}`
-          if (index < arr.length - 1) {
-            if (!this.rowPath[newKey]) {
-              this.rowPath[newKey] = []
-            }
-            const child = `${newObj[arr[index + 1]]}_${arr[index + 1]}`
-            if (!this.rowPath[newKey].includes(child)) {
-              this.rowPath[newKey].push(child)
-            }
-          }
-        })
-      })
-  }
-  public getTopRowAndColMatchPath() {
-    // 行列首行 path关系，判定 是聚合离散关系 start
-    this.widgetProps.treeRootTagNodeList
-      .filter((item) => item.parentName === 'noraml')
-      .forEach((o) => {
-        // debugger
-        let arr = Object.keys(o.fullPath).reverse()
-        let newObj = o.fullPath
-        arr.forEach((key, index) => {
-          let newKey = `${newObj[key]}_${key}`
-          if (index < arr.length - 1) {
-            if (!this.rowColTopLevelPath[newKey]) {
-              this.rowColTopLevelPath[newKey] = []
-            }
-            const child = `${newObj[arr[index + 1]]}_${arr[index + 1]}`
-            if (!this.rowColTopLevelPath[newKey].includes(child)) {
-              this.rowColTopLevelPath[newKey].push(child)
-            }
-          }
-        })
-      })
-
-    // 每一层进行迭代，一直迭代到最后一层
-    let pathKeyGroup = Object.keys(this.rowColTopLevelPath).filter((item) =>
-      isSumNodeEndReg(this.widgetProps.rowArray[0], item)
-    ) // 获取层级的key
-    pathKeyGroup.forEach((key) => {
-      // path[key]应该等于一个迭代结构
-      const iteration = (rowColTopLevelPath, array) => {
-        const queue = [...array]
-        let currentNode = queue.shift()
-        while (
-          currentNode &&
-          !isSumNodeEndReg(this.widgetProps.colArray[0], currentNode)
-        ) {
-          queue.push(...rowColTopLevelPath[currentNode])
-          currentNode = queue.shift()
-        }
-        return Array.from(new Set([currentNode, ...queue]))
-      }
-
-      this.rowColTopLevelPath[key] = iteration(
-        this.rowColTopLevelPath,
-        this.rowColTopLevelPath[key]
-      )
-    })
-  }
-  public isMergeOrSplice() {
-    return Object.keys(this.rowColTopLevelPath)
-      .filter((item) => isSumNodeEndReg(this.widgetProps.rowArray[0], item))
-      .some((h) => {
-        const targetKey = Object.keys(this.treeOption.treeAllPath).filter((l) =>
-          isSumNodeStartReg(l, h)
-        )[0]
-        const endKey = this.treeOption.treeAllPath[targetKey].reduce(
-          (pre, cur) => {
-            const key = cur.split(',')[this.widgetProps.colArray.length - 1]
-            return (pre = [...pre, key])
-          },
-          []
-        )
-        return Array.from(new Set(endKey)).length > 1
-      })
-  }
-  public buildWholePath() {
-    this.groupWholePath = Object.keys(this.treeOption.treeAllPath).reduce(
-      (pre: any, cur: any) => {
-        const keyGroup = this.treeOption.treeAllPath[cur].map((item) => {
-          return `${item},${cur}`.split(',')
-        })
-        return (pre = [...pre, ...keyGroup])
-      },
-      []
-    )
-  }
-  public partTopGroup(item, index) {
-    return this.groupWholePath.reduce((pre, cur) => {
-      pre = cur.includes(item.parentName)
-        ? [...pre, cur[cur.length - index]]
-        : [...pre]
-      return Array.from(new Set(pre))
-    }, [])
-  }
-  // this.widgetProps.rowArray[index - 1]
-  public getTopNewPart(item, index, target) {
-    if (getOriginKey(item.key) === target)
-      return item
-    item = item.parent
-    return tree.getTopNewPart(item, index, target)
-  }
-  public buildGroupTop(index = 1, item, level, type = false) {
-    console.log(this.groupWholePath, 'this.groupWholePath')
-
-    let curIndexKey, curItemGroup,beforeItemGroup
-  //   if(type){
-  //   curIndexKey = this.groupWholePath.filter((cur)=>{
-  //     return cur.includes(item.parentName)
-  //   })  // 寻找父节点所在path
-  //   curItemGroup = curIndexKey.map((f)=>{
-  //     return f[index]
-  //   })  // [Andiro,ios,浏览器]
-  //   beforeItemGroup = curIndexKey.map((d)=>{
-  //     return d[index-1]
-  //   })
-  // }
-  //   if( type && Array.from(new Set(beforeItemGroup)).length ==1 && curItemGroup.length> 1 ){
-  //     const arr = [...this.widgetProps.rowArray, ...this.widgetProps.colArray].reverse()
-  //     this.treeOption.topNewPartType = tree.getTopNewPart(item, index, arr[index]).value
-  //     let topNewPartTypeItem = this.group[level][item.parentName][
-  //       this.treeOption.topNewPartType
-  //     ]
-  //     if (!topNewPartTypeItem) {
-  //       this.group[level][item.parentName][this.treeOption.topNewPartType] = []
-  //     }
-  //   } else {
-      const partTopGroup = tree.partTopGroup(item, index)
-      if (partTopGroup.length > 1 || (partTopGroup.length == 1 && index !== 1)) {
-        if (partTopGroup.every((a) => isQdReg('QD', a)) && index !== 1) {
-          index--
-        }
-        this.treeOption.topNewPartType = tree.getTopNewPart(item, index, this.widgetProps.rowArray[index - 1]).value
-        let topNewPartTypeItem = this.group[level][item.parentName][
-          this.treeOption.topNewPartType
-        ]
-        if (!topNewPartTypeItem) {
-          this.group[level][item.parentName][this.treeOption.topNewPartType] = []
-        }
-        return
-      }
-      index++
-      return tree.buildGroupTop(index, item, level, false)
-    // }
-
-   
-   
-  }
-
-  public setGroup(level) {
-    this.group[level] = {}
-    // 筛选 非noraml节点 开始在colArray
-    const selectGroup = this.widgetProps.treeRootTagNodeList
-      .filter(
-        (item) =>
-          item.parentLevel === level &&
-          item.parentName !== 'noraml' &&
-          !this.widgetProps.rowArray.includes(item.startLevel)
-      )
-      console.log(selectGroup, level, '对应的level')
-      selectGroup.forEach((item) => {
-        // if(item.key == 'sum(总停留时间)_0625sum'){
-        //   debugger
-        // }
-        // 排除行总计
-        if (tree.getFirstNotSumLevel(item.parent).key !== 'name_level0_0') {
-          if (!this.group[level].hasOwnProperty(item.parentName)) {
-            this.group[level][item.parentName] = {}
-          }
-          tree.buildGroupTop(1, item, level, true)
-          this.group[level][item.parentName][
-            this.treeOption.topNewPartType
-          ].push(item)
-        }
-      })
-    console.log(this.group, 'this.group')
-  }
-  public changePosition() {
-    this.arrTarget.reverse().forEach((level, idx) => {
-      let groupArray = []
-      if (!idx) {
-        const allGroup: any = Object.values(this.group[level]).reduce(
-          (pre: any, cur: any) => {
-            return (pre = [...pre, ...Object.values(cur)])
-          },
-          []
-        )
-        groupArray.push(allGroup.flat(Infinity))
-      } else {
-        groupArray = Object.values(this.group[level])
-      }
-      groupArray.forEach((obj: any) => {
-        const getEndArray = (origin) => {
-          if (
-            Array.isArray(origin) &&
-            origin.every((item) => Array.isArray(item))
-          )
-            return origin
-          if (Object.prototype.toString.call(origin) === '[object Object]') {
-            origin = Object.values(origin)
-          } else if (
-            Object.prototype.toString.call(origin) === '[object Array]'
-          ) {
-            return origin
-          } else {
-            origin = origin.map((j) => Object.values(j))
-          }
-
-          return getEndArray(origin)
-        }
-        let flatGroup: any = getEndArray(obj).flat(Infinity)
-        let count
-        console.log(tree.isMergeOrSplice(), 'tree.isMergeOrSplice()')
-        if (!idx || !tree.isMergeOrSplice()) {
-          count = Math.max(0,flatGroup.length - 2)
-        } else {
-          count = Math.max(0,getEndArray(obj)[0].length - 3)
-        }
-        const findIndex = this.widgetProps.treeRootTagNodeList.findIndex(
-          (o) => o === flatGroup[count]
-        )
-        this.widgetProps.treeRootTagNodeList.splice(findIndex, 0, ...flatGroup)
-        flatGroup.forEach((k) => {
-          const isExitedIndex = this.widgetProps.treeRootTagNodeList.findIndex(
-            (o) => o === k
-          )
-          this.widgetProps.treeRootTagNodeList.splice(isExitedIndex, 1)
-        })
-      })
-    })
-  }
-  public buildJson() {
-    tree.getRowPath()
-    tree.getTopRowAndColMatchPath()
-    
-    this.arrTarget.reverse().forEach((level) => {
-      tree.setGroup(level)
-    })
-    tree.changePosition()
-    // console.log(this.groupWholePath, 'this.groupWholePath')
-  }
   public getJson() {
     this.widgetProps.treeRootTagNodeList.forEach((item) => {
       const obj = {}
@@ -1214,6 +648,25 @@ class MultiwayTree {
       }
       iteration(item, obj)
     })
+  }
+  public initWidgetProps(rowGroup, colGroup, wideTableList) {
+    this.widgetProps.rowArray = colGroup
+    this.widgetProps.colArray = rowGroup
+    this.widgetProps.wideTableList = wideTableList
+    this.widgetProps.root = null
+    this.widgetProps.treeRootTagNodeList = []
+    this.widgetProps.transformedWideTableList = []
+
+  }
+
+  public getCompluteJson(rowGroup, colGroup, wideTableList) {
+    tree.initWidgetProps(rowGroup, colGroup, wideTableList)
+    tree.constructMultiwayTree()
+    tree.addTotalNodeToTree()
+    tree.setNodeParentName()
+    tree.calcSumNodeDFS()
+    tree.getJson()
+    return tree
   }
 }
 

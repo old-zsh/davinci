@@ -75,63 +75,99 @@ export class RowHeader extends React.Component<IRowHeaderProps, {}> {
       if (rowKeys.length > 1) {
         console.log(JSON.stringify(rowKeys), 'rowKeys after')
 
-        let divideGroup
+        let divideGroup = []
         const colSumIdx = rowKeys.findIndex((item)=>{
           return item.every((k)=> k === '总和')
         })
         const colSumNode: any = rowKeys.splice(colSumIdx,1)
-        debugger
         rowKeys.push(...colSumNode)
-        const iterationRowKeys = (rowKeys, idx) => {
-
-          divideGroup = rowKeys.reduce((pre, cur) => {
-            if (cur.every((e) => Array.isArray(e))) {
-              return iterationRowKeys(cur, idx)
+        const iteration2 = (rowKeys, idx) => {
+  
+          const makeDivideGroup = (rowKeys) =>{
+            divideGroup = rowKeys.reduce((pre, cur) => {
+              if (!pre.flat(Infinity).includes(cur[idx])) {
+                let cellArray = [];
+                cellArray.push(cur);
+                pre.push(cellArray);
+              } else {
+                const exitIdx = pre.findIndex((arr) => {
+                  return arr.flat(Infinity).includes(cur[idx]);
+                });
+                const sumNumber = cur.reduce((sumCount,init)=>{
+                  if(init === '合计'){
+                    sumCount ++
+                  }
+                  return sumCount = sumCount
+                },0)
+                if(sumNumber === cur.length - 1){
+                  pre[pre.length-1].push(cur)
+                } else {
+                  pre[exitIdx].push(cur)
+                }
+  
+              }
+              return pre;
+            }, []);
+            divideGroup.forEach((group, index) => {
+              const spliceLast = (idx) => {
+                if(idx < 0) return 
+                let sumIndex = group.findIndex((h) => h[idx + 1] === '合计')
+                const sumNode = group.splice(sumIndex, 1)
+                divideGroup[index].push(...sumNode)
+                idx -- 
+                return spliceLast(idx)
+              }
+              spliceLast(idx)
+            })
+            return divideGroup;
+          }
+  
+          if(rowKeys[0].every((e) => Array.isArray(e))){
+            // 若数组中每个元素都为数组
+            const iteration3 = (rowKeys) => {
+              const result = rowKeys.reduce((pre,cur) => {
+                if(cur.flat(1).every((e) => Array.isArray(e))) return iteration3(cur)
+                pre =  [...pre,makeDivideGroup(cur)]
+                return pre
+              },[])
+              return result
             }
-            if (!pre.flat(Infinity).includes(cur[idx])) {
-              let cellArray = []
-              cellArray.push(cur)
-              pre.push(cellArray)
-            } else {
-              const exitIdx = pre.findIndex((arr) => {
-                return arr.flat(Infinity).includes(cur[idx])
-              })
-              pre[exitIdx].push(cur)
-            }
-            return pre
-          }, [])
-          divideGroup.forEach((group, index) => {
-            let sumIndex = group.findIndex((h) => h[idx + 1] === '合计')
-            const sumNode = group.splice(sumIndex, 1)
-            divideGroup[index].push(...sumNode)
-          })
+            divideGroup = iteration3(rowKeys)
+          } else {
+            divideGroup = makeDivideGroup(rowKeys)
+          }
           return divideGroup
-        }
-        iterationRowKeys(rowKeys, 0)
+        };
+        iteration2(rowKeys, 0);
         const iteration = (divideGroup, index) => {
-          if (index > rowKeys[0].length - 2) return divideGroup
-          debugger
+          if (index + 1 >= rowKeys[0].length - 2) return divideGroup;
           let divideGroups = divideGroup.reduce((pre, item) => {
             let selectKey = item.reduce((pre, cur) => {
-              return (pre = Array.from(new Set([...pre, cur[index]])))
-            }, [])
+              return (pre = Array.from(new Set([...pre, cur[index]])));
+            }, []);
+  
             let sortArr = selectKey.reduce((pre, cur) => {
-              let singleGroup = item.filter((a) => a.includes(cur))
-              return (pre = Array.from(new Set([...pre, ...singleGroup])))
-            }, [])
-            return (pre = [...pre, sortArr])
+              let singleGroup = item.filter((a) => a.includes(cur));
+              return (pre = Array.from(new Set([...pre, ...singleGroup])));
+            }, []);
+            return (pre = [...pre, sortArr]);
+          }, []);
+         
+          index++;
+          divideGroup = iteration2(divideGroups, index);
+          return iteration(divideGroup, index);
+        };
+        const flatItem = (group) =>{
+          if(group[0].every((d)=>!Array.isArray(d))) return group
+           group = group.reduce((pre, cur) => {
+            return (pre = [...pre, ...cur])
           }, [])
-          index++
-          if (index < rowKeys[0].length - 2) {
-            iterationRowKeys(divideGroups, 2)
-          }
-          return iteration(divideGroups, index)
+          return flatItem(group)
         }
+        sortRowKeys = flatItem(iteration(divideGroup, 0))
+        console.log(iteration(divideGroup, 0),sortRowKeys, 'iteration(divideGroup, 0)')
+        rowKeys =  sortRowKeys 
 
-        sortRowKeys = iteration(divideGroup, 1).reduce((pre, cur) => {
-          return (pre = [...pre, ...cur])
-        }, [])
-        rowKeys = sortRowKeys
       } else {
         rowKeys = rowKeys
       }
