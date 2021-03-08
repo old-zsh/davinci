@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2021-02-22 16:19:27
- * @LastEditTime: 2021-03-05 19:07:09
+ * @LastEditTime: 2021-03-05 19:10:42
  * @LastEditors: Please set LastEditors
  * @Description: In User Settings Edit
  * @FilePath: /davinci-fork/davinci/webapp/app/containers/Widget/components/Pivot/test.ts
@@ -647,54 +647,54 @@ class MultiwayTree {
       queue.forEach((item) => {
         currentNode = queue.shift()
         if (this.widgetProps.tagGroup.includes(currentNode.value)) {
-          if (isSumNodeEnd(currentNode.key)) {
+          // if (isSumNodeEnd(currentNode.key)) {
         
-            // if (currentNode.key === 'sum(总停留时间)_07sum') {
-            //   debugger
-            // }
+          //   // if (currentNode.key === 'sum(总停留时间)_07sum') {
+          //   //   debugger
+          //   // }
 
-            let startNode
-            let isFirstNotSumParent = tree.getFirstNotSums(currentNode.parent)
-            let isRowLastNode = this.widgetProps.rowArray[this.widgetProps.rowArray.length - 1]
-            currentNode.type = 'sumlNode'
-            if (  getOriginKey(isFirstNotSumParent.key) ==  isRowLastNode ) {
-              // 判断寻找第一个不是sum的parent若为rowlast，则为列总和节点，则parentLevel和parentName设置为row的第一行
-              startNode = isFirstNotSumParent
-              currentNode.parentLevel = getOriginKey(tree.getAsRootParent(currentNode).key)
-              currentNode.parentName = tree.getAsRootParent(currentNode).value
-            } else {
-              // 包含行总和和小计    区分正常总计和总计下面总计currentNode.parent.value === '合计'判断
-              // console.log(this.groupWholePath, 'this.treeOption.treeAllPath')
+          //   let startNode
+          //   let isFirstNotSumParent = tree.getFirstNotSums(currentNode.parent)
+          //   let isRowLastNode = this.widgetProps.rowArray[this.widgetProps.rowArray.length - 1]
+          //   currentNode.type = 'sumlNode'
+          //   if (  getOriginKey(isFirstNotSumParent.key) ==  isRowLastNode ) {
+          //     // 判断寻找第一个不是sum的parent若为rowlast，则为列总和节点，则parentLevel和parentName设置为row的第一行
+          //     startNode = isFirstNotSumParent
+          //     currentNode.parentLevel = getOriginKey(tree.getAsRootParent(currentNode).key)
+          //     currentNode.parentName = tree.getAsRootParent(currentNode).value
+          //   } else {
+          //     // 包含行总和和小计    区分正常总计和总计下面总计currentNode.parent.value === '合计'判断
+          //     // console.log(this.groupWholePath, 'this.treeOption.treeAllPath')
               
-              startNode = tree.getFirstNotSum(currentNode)
-              if(this.widgetProps.colArray.includes(getOriginKey(startNode.key)) && getOriginKey(startNode.key) !==this.widgetProps.colArray[0]){
-                // if(currentNode.key === 'sum(总停留时间)_503sum'){
-                //   debugger
-                // }
-                const rowColConcat = [
-                  ...this.widgetProps.rowArray,
-                  ...this.widgetProps.colArray
-                ].reverse()
-                const findIndex = rowColConcat.indexOf(getOriginKey(startNode.key))
-                currentNode.parentName = tree.getRealParent(startNode, findIndex).value
-              } else {
-                currentNode.parentName = startNode.value
-              }
-              currentNode.parentLevel = getOriginKey(startNode.key)
-              // if (
-              //   !this.widgetProps.colArray.includes(
-              //     getOriginKey(startNode.key)
-              //   ) &&
-              //   currentNode.parent.value === '合计'
-              // ) {
-              //   startNode = currentNode.parent.parent
-              // }
+          //     startNode = tree.getFirstNotSum(currentNode)
+          //     if(this.widgetProps.colArray.includes(getOriginKey(startNode.key)) && getOriginKey(startNode.key) !==this.widgetProps.colArray[0]){
+          //       // if(currentNode.key === 'sum(总停留时间)_503sum'){
+          //       //   debugger
+          //       // }
+          //       const rowColConcat = [
+          //         ...this.widgetProps.rowArray,
+          //         ...this.widgetProps.colArray
+          //       ].reverse()
+          //       const findIndex = rowColConcat.indexOf(getOriginKey(startNode.key))
+          //       currentNode.parentName = tree.getRealParent(startNode, findIndex).value
+          //     } else {
+          //       currentNode.parentName = startNode.value
+          //     }
+          //     currentNode.parentLevel = getOriginKey(startNode.key)
+          //     // if (
+          //     //   !this.widgetProps.colArray.includes(
+          //     //     getOriginKey(startNode.key)
+          //     //   ) &&
+          //     //   currentNode.parent.value === '合计'
+          //     // ) {
+          //     //   startNode = currentNode.parent.parent
+          //     // }
 
-            }
-            currentNode.startLevel = getOriginKey(
-              startNode.children[startNode.children.length - 1].key
-            )
-          }
+          //   }
+          //   currentNode.startLevel = getOriginKey(
+          //     startNode.children[startNode.children.length - 1].key
+          //   )
+          // }
 
           this.widgetProps.treeRootTagNodeList.push(currentNode)
         }
@@ -824,7 +824,7 @@ class MultiwayTree {
     tree.buildWholePath()
     tree.setNodeParentName()
     tree.calcSumNodeDFS()
-    tree.buildJson()
+    // tree.buildJson()
     tree.getJson()
     console.log(tree,'tree')
     return tree

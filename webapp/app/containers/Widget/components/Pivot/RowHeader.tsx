@@ -76,10 +76,17 @@ export class RowHeader extends React.Component<IRowHeaderProps, {}> {
         console.log(JSON.stringify(rowKeys), 'rowKeys after')
 
         let divideGroup
-        const iteration2 = (rowKeys, idx) => {
+        const colSumIdx = rowKeys.findIndex((item)=>{
+          return item.every((k)=> k === '总和')
+        })
+        const colSumNode: any = rowKeys.splice(colSumIdx,1)
+        debugger
+        rowKeys.push(...colSumNode)
+        const iterationRowKeys = (rowKeys, idx) => {
+
           divideGroup = rowKeys.reduce((pre, cur) => {
             if (cur.every((e) => Array.isArray(e))) {
-              return iteration2(cur, idx)
+              return iterationRowKeys(cur, idx)
             }
             if (!pre.flat(Infinity).includes(cur[idx])) {
               let cellArray = []
@@ -100,9 +107,10 @@ export class RowHeader extends React.Component<IRowHeaderProps, {}> {
           })
           return divideGroup
         }
-        iteration2(rowKeys, 0)
+        iterationRowKeys(rowKeys, 0)
         const iteration = (divideGroup, index) => {
           if (index > rowKeys[0].length - 2) return divideGroup
+          debugger
           let divideGroups = divideGroup.reduce((pre, item) => {
             let selectKey = item.reduce((pre, cur) => {
               return (pre = Array.from(new Set([...pre, cur[index]])))
@@ -115,7 +123,7 @@ export class RowHeader extends React.Component<IRowHeaderProps, {}> {
           }, [])
           index++
           if (index < rowKeys[0].length - 2) {
-            iteration2(divideGroups, 2)
+            iterationRowKeys(divideGroups, 2)
           }
           return iteration(divideGroups, index)
         }
