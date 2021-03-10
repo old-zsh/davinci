@@ -1295,9 +1295,7 @@ export class OperatingPanel extends React.Component<
           const colGroup = cols.items.map((item)=>item.name)
           const tagGroup = ['sum(总停留时间)']
           const originList = result.resultList
-          // console.log(rowGroup,colGroup,originList, '测试的值 1')
           const { widgetProps: { transformedWideTableList } } = tree.getCompluteJson(rowGroup,colGroup,originList)
-          // console.log(transformedWideTableList,  '测试的值 2')
           result.resultList = this.makeOriginJson(transformedWideTableList,rowGroup , colGroup,  tagGroup)
           let { resultList: data, pageNo, pageSize, totalCount } = result
           updatedPagination = !updatedPagination.withPaging
@@ -1469,7 +1467,7 @@ export class OperatingPanel extends React.Component<
         metrics.items.forEach((i) => {
           i.chart = chart
         })
-        if (chart.id !== PivotTypes.PivotTable) {
+        if (chart.id !== PivotTypes.PivotTable) { 
           cols.items = cols.items.filter((c) => c.name !== '指标名称')
           rows.items = rows.items.filter((r) => r.name !== '指标名称')
         }

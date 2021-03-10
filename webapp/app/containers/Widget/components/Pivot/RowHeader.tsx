@@ -14,7 +14,7 @@ import {
   getStyleConfig
 } from '../util'
 import { PIVOT_LINE_HEIGHT, DEFAULT_SPLITER } from 'app/globalConstants'
-
+import { isElementOfArray } from './util'
 const styles = require('./Pivot.less')
 
 interface IRowHeaderProps {
@@ -53,7 +53,7 @@ export class RowHeader extends React.Component<IRowHeaderProps, {}> {
     const { elementSize, unitMetricHeight } = drawingData
     // console.log(rowTree, 'rowTree RowHeader')
     // console.log(colTree, 'colTree RowHeader')
-    console.log(rowKeys, 'rowKeys RowHeader')
+    console.log(this.props, 'this.props')
     // console.log(colKeys, 'colKeys RowHeader')
     // console.log(tree, 'tree RowHeader')
     const {
@@ -71,106 +71,58 @@ export class RowHeader extends React.Component<IRowHeaderProps, {}> {
       let elementCount = 0
       let x = -1
       let hasAuxiliaryLine = false
-      let sortRowKeys
       if (rowKeys.length > 1) {
-        console.log(JSON.stringify(rowKeys), 'rowKeys after')
-
-        let divideGroup = []
-        const colSumIdx = rowKeys.findIndex((item)=>{
-          return item.every((k)=> k === '总和')
-        })
-        const colSumNode: any = rowKeys.splice(colSumIdx,1)
-        rowKeys.push(...colSumNode)
-        const iteration2 = (rowKeys, idx) => {
-  
-          const makeDivideGroup = (rowKeys) =>{
-            divideGroup = rowKeys.reduce((pre, cur) => {
-              if (!pre.flat(Infinity).includes(cur[idx])) {
-                let cellArray = [];
-                cellArray.push(cur);
-                pre.push(cellArray);
-              } else {
-                const exitIdx = pre.findIndex((arr) => {
-                  return arr.flat(Infinity).includes(cur[idx]);
-                });
-                const sumNumber = cur.reduce((sumCount,init)=>{
-                  if(init === '合计'){
-                    sumCount ++
-                  }
-                  return sumCount = sumCount
-                },0)
-                if(sumNumber === cur.length - 1){
-                  pre[pre.length-1].push(cur)
-                } else {
-                  pre[exitIdx].push(cur)
-                }
-  
-              }
-              return pre;
-            }, []);
-            divideGroup.forEach((group, index) => {
-              const spliceLast = (idx) => {
-                if(idx < 0) return 
-                let sumIndex = group.findIndex((h) => h[idx + 1] === '合计')
-                const sumNode = group.splice(sumIndex, 1)
-                divideGroup[index].push(...sumNode)
-                idx -- 
-                return spliceLast(idx)
-              }
-              spliceLast(idx)
-            })
-            return divideGroup;
-          }
-  
-          if(rowKeys[0].every((e) => Array.isArray(e))){
-            // 若数组中每个元素都为数组
-            const iteration3 = (rowKeys) => {
-              const result = rowKeys.reduce((pre,cur) => {
-                if(cur.flat(1).every((e) => Array.isArray(e))) return iteration3(cur)
-                pre =  [...pre,makeDivideGroup(cur)]
-                return pre
-              },[])
-              return result
-            }
-            divideGroup = iteration3(rowKeys)
-          } else {
-            divideGroup = makeDivideGroup(rowKeys)
-          }
-          return divideGroup
-        };
-        iteration2(rowKeys, 0);
-        const iteration = (divideGroup, index) => {
-          if (index + 1 >= rowKeys[0].length - 2) return divideGroup;
-          let divideGroups = divideGroup.reduce((pre, item) => {
-            let selectKey = item.reduce((pre, cur) => {
-              return (pre = Array.from(new Set([...pre, cur[index]])));
-            }, []);
-  
-            let sortArr = selectKey.reduce((pre, cur) => {
-              let singleGroup = item.filter((a) => a.includes(cur));
-              return (pre = Array.from(new Set([...pre, ...singleGroup])));
-            }, []);
-            return (pre = [...pre, sortArr]);
+        console.log(rowKeys,JSON.stringify(rowKeys), 'rowKeys')
+        const breakFn = (rowKeys, idx) => {
+          const levelSortKey = rowKeys.reduce((pre, cur) => {
+            return (pre = Array.from(new Set([...pre, cur[idx]])));
           }, []);
-         
-          index++;
-          divideGroup = iteration2(divideGroups, index);
-          return iteration(divideGroup, index);
+          debugger
+          const sumText = levelSortKey.findIndex((key) =>
+            ["总和", "合计"].includes(key)
+          );
+          levelSortKey.push(...levelSortKey.splice(sumText, 1));
+          let partGroup = levelSortKey.reduce((pre, cur) => {
+            const group = rowKeys.filter((item) => item[idx] === cur);
+            return (pre = [...pre, group]);
+          }, []);
+          if(idx == rows.length - 2){
+            const exitedSumGroup = partGroup.splice(0,partGroup.length-1)
+            exitedSumGroup.forEach((group,index)=>{
+              const sumText = exitedSumGroup[index].findIndex((k)=> ["总和", "合计"].includes(k[k.length-1]))
+              exitedSumGroup[index].push(...exitedSumGroup[index].splice(sumText, 1));
+            })
+            partGroup = [...exitedSumGroup,...partGroup]
+          }
+          return partGroup;
         };
-        const flatItem = (group) =>{
-          if(group[0].every((d)=>!Array.isArray(d))) return group
-           group = group.reduce((pre, cur) => {
-            return (pre = [...pre, ...cur])
-          }, [])
-          return flatItem(group)
-        }
-        sortRowKeys = flatItem(iteration(divideGroup, 0))
-        console.log(iteration(divideGroup, 0),sortRowKeys, 'iteration(divideGroup, 0)')
-        rowKeys =  sortRowKeys 
-
-      } else {
-        rowKeys = rowKeys
+        const iteration = (rowKeys, idx) => {
+          if (!idx) return breakFn(rowKeys, idx);
+          rowKeys = rowKeys.reduce((pre, cur) => {
+            if (!isElementOfArray(cur.flat(1)))
+              return (pre = [...pre, breakFn(cur, idx)]);
+            const group = iteration(cur, idx);
+            return (pre = [...pre, group]);
+          }, []);
+          return rowKeys;
+        };
+        const getPartGroupByKey = (divideGroupByLevel, index) => {
+          if (index > Math.max(rows.length - 2,0)) return divideGroupByLevel;
+          divideGroupByLevel = iteration(divideGroupByLevel, index);
+          index++;
+          return getPartGroupByKey(divideGroupByLevel, index);
+        };
+        const result = getPartGroupByKey(rowKeys, 0);
+        const flatItem = (group) => {
+          if (group[0].every((d) => !Array.isArray(d))) return group;
+          group = group.reduce((pre, cur) => {
+            return (pre = [...pre, ...cur]);
+          }, []);
+          return flatItem(group);
+        };
+        rowKeys = flatItem(result)
       }
+        
 
       rowKeys.forEach((rk, i) => {
         const flatRowKey = rk.join(String.fromCharCode(0))

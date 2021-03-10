@@ -656,7 +656,6 @@ class MultiwayTree {
     this.widgetProps.root = null
     this.widgetProps.treeRootTagNodeList = []
     this.widgetProps.transformedWideTableList = []
-
   }
 
   public getCompluteJson(rowGroup, colGroup, wideTableList) {
