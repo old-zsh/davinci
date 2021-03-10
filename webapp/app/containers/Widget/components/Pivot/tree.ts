@@ -19,32 +19,29 @@ class MultiwayTree {
     root: null,
     wideTableList: [],
     rootArray: ['name_level0'],
-    tagGroup: ['sum(总停留时间)'],
+    tagGroup: [],
     colArray: [],
     rowArray: [],
     transformedWideTableList: [],
     treeRootTagNodeList: []
   }
   public arrTarget = []
-  public treeOption = {
+  public pointOption = {
     treePointItem: [],
-    hasSameParent: false,
+    isExistEqualParent: false,
     parentKey: '',
     level: {},
-    defaultKey: '',
-    targetNode: true,
-    parentDefaultKey: '',
+    initKey: '',
+    isMetrics: true,
+    initParentKey: '',
     existEqualNode: {
       parentId: null,
       key: null
     },
     nodeValue: null,
-    levelOption: {
-      treeIndex: 0,
-      levelKey: '',
-      treeItem: {},
-      levelIndex: 0
-    },
+    listIdx: 0,
+    originListItem: {},
+
   } as any
 
   constructor() {}
@@ -100,103 +97,96 @@ class MultiwayTree {
     }
   }
 
-  public isEqualTreeNode(treeIndex, levelIndex, treeNodeGroup) {
-    if (!treeIndex) {
-      return (this.treeOption.hasSameParent = false)
-    }
 
-    const getExistEqualNode = (treePointItem, nodeValue, levelIndex) => {
-      return treePointItem
-        .filter((item, idx) => {
-          if (Array.isArray(item)) {
-            getExistEqualNode(item, nodeValue, levelIndex)
-          } else {
-            return item.value === nodeValue && levelIndex === idx
-          }
-        })
-        .shift()
+  public getExistEqualNode (labelText, treePointItem, index){
+    return treePointItem.filter((item, idx) => {
+        if (Array.isArray(item)) {
+          return tree.getExistEqualNode(labelText,item, index)
+        } else {
+          return item.value === labelText && index === idx
+        }
+      })
+      .shift()
+  }
+  public isEqualTreeNode(index, treeNodeGroup) {
+    const {originListItem, levelKey, listIdx} = this.pointOption
+    const labelText = originListItem[levelKey]
+    if (!listIdx) {
+      return (this.pointOption.isExistEqualParent = false)
     }
-
-    this.treeOption.existEqualNode = getExistEqualNode(
-      this.treePointItem,
-      this.treeOption.nodeValue,
-      levelIndex
-    )
+    this.pointOption.existEqualNode = tree.getExistEqualNode(labelText, this.treePointItem,index)
 
     const existEqualNodeOfParentKey = this.treePointItem
-      .filter((item) => this.treeOption.existEqualNode?.parentId === item.key)
+      .filter((item) => this.pointOption.existEqualNode?.parentId === item.key)
       .pop()?.key
 
-    this.treeOption.parentDefaultKey = this.treeOption.targetNode
-      ? treeNodeGroup.map((o) => o).pop().defaultKey
-      : this.treeOption.parentKey
+    this.pointOption.initParentKey = this.pointOption.isMetrics
+      ? treeNodeGroup.map((o) => o).pop().initKey
+      : this.pointOption.parentKey
 
     const originParentKey = treeNodeGroup
-      .filter((item) => this.treeOption.parentDefaultKey === item.defaultKey)
+      .filter((item) => this.pointOption.initParentKey === item.initKey)
       .pop()?.key
-    this.treeOption.hasSameParent =
+    this.pointOption.isExistEqualParent =
       originParentKey === existEqualNodeOfParentKey
   }
-
-  public buildTreePointItem(treeItem, treeIndex) {
+  public getNodeParentId = (treeNodeGroup) => {
+    const {
+      isExistEqualParent,
+      initParentKey,
+      listIdx,
+    } = this.pointOption
+    if (isExistEqualParent) {
+      return this.pointOption.existEqualNode.parentId
+    } else {
+      if(this.pointOption.isMetrics){
+        return treeNodeGroup[treeNodeGroup.length-1].initKey
+      }
+      if(listIdx == 0){
+        return this.pointOption.parentKey
+      } else {
+        const exitedNode = treeNodeGroup.filter((item) => item.initKey == initParentKey).pop()
+        return exitedNode.key
+      }
+      
+    }
+  }
+  public buildTreeNodeData = (treeNodeGroup) => {
+    const {
+      isMetrics,
+      isExistEqualParent,
+      existEqualNode,
+      initKey,
+      levelKey,
+      originListItem
+    } = this.pointOption
+    
+    return {
+      data: isMetrics ? originListItem[levelKey] : null,
+      value: isMetrics ? levelKey : originListItem[levelKey],
+      initKey,
+      parentId: tree.getNodeParentId(treeNodeGroup),
+      key: isExistEqualParent ? existEqualNode.key : initKey
+    }
+  }
+  public buildTreePointItem(originListItem, listIdx) {
     const treeNodeGroup = []
     const targetNodeGroup = []
-
-    treeItem = { name_level0: 'root', ...treeItem }
-    const treeItemKeys = Object.keys(treeItem)
-    treeItemKeys.forEach((levelKey, levelIndex) => {
-      this.treeOption = {
-        defaultKey: `${levelKey}_${treeIndex}`,
-        parentKey: `${treeItemKeys[levelIndex - 1]}_${treeIndex}`,
-        targetNode: this.widgetProps.tagGroup.includes(levelKey),
-        nodeValue: treeItem[levelKey],
-        levelOption: { treeItem, treeIndex, levelKey, levelIndex }
+    originListItem = { name_level0: 'root', ...originListItem }
+    const levelKeyGroup = Object.keys(originListItem)
+    levelKeyGroup.forEach((levelKey, index) => {
+      this.pointOption = {
+        initKey: `${levelKey}_${listIdx}`,
+        parentKey: `${levelKeyGroup[index - 1]}_${listIdx}`,
+        isMetrics: this.widgetProps.tagGroup.includes(levelKey),
+        levelKey,
+        listIdx,
+        originListItem,
       }
-
-      tree.isEqualTreeNode(treeIndex, levelIndex, treeNodeGroup)
-      const buildTreeNodeData = () => {
-        const {
-          targetNode,
-          defaultKey,
-          levelOption,
-          hasSameParent,
-          existEqualNode,
-          parentKey,
-          parentDefaultKey
-        } = this.treeOption
-        const { treeItem, treeIndex, levelKey } = levelOption
-        const getNodeParentId = () => {
-          const { treeIndex } = levelOption
-
-          if (targetNode) {
-            return treeNodeGroup.map((item) => item).pop().defaultKey
-          }
-
-          if (!treeIndex) {
-            return parentKey
-          }
-          if (hasSameParent) {
-            return existEqualNode.parentId
-          }
-          if (hasSameParent) {
-            return existEqualNode.parentId
-          } else {
-            return treeNodeGroup
-              .filter((k) => k.defaultKey == parentDefaultKey)
-              .pop()?.key
-          }
-        }
-        return {
-          data: targetNode ? treeItem[levelKey] : null,
-          value: targetNode ? levelKey : treeItem[levelKey],
-          defaultKey,
-          parentId: getNodeParentId(),
-          key: hasSameParent ? existEqualNode.key : defaultKey
-        }
-      }
+      tree.isEqualTreeNode(index,treeNodeGroup)
       Array.prototype.push.call(
-        this.treeOption.targetNode ? targetNodeGroup : treeNodeGroup,
-        buildTreeNodeData()
+        this.pointOption.isMetrics ? targetNodeGroup : treeNodeGroup,
+        tree.buildTreeNodeData(treeNodeGroup)
       )
     })
     return [...treeNodeGroup, targetNodeGroup]
@@ -205,8 +195,9 @@ class MultiwayTree {
   public constructMultiwayTree() {
     
     this.widgetProps.wideTableList.forEach((item, index) => {
-      this.treeOption.existEqualNode = null
-      this.treeOption.hasSameParent = false
+      this.pointOption.existEqualNode = null
+      this.pointOption.isExistEqualParent = false
+    
       this.treePointItem = tree.buildTreePointItem(item, index)
       this.treePointItem.forEach((item, i) => {
         if (!item.length && !item.parentId) {
@@ -649,7 +640,8 @@ class MultiwayTree {
       iteration(item, obj)
     })
   }
-  public initWidgetProps(rowGroup, colGroup, wideTableList) {
+  public initWidgetProps(tagGroup,rowGroup, colGroup, wideTableList) {
+    this.widgetProps.tagGroup = tagGroup
     this.widgetProps.rowArray = colGroup
     this.widgetProps.colArray = rowGroup
     this.widgetProps.wideTableList = wideTableList
@@ -658,8 +650,8 @@ class MultiwayTree {
     this.widgetProps.transformedWideTableList = []
   }
 
-  public getCompluteJson(rowGroup, colGroup, wideTableList) {
-    tree.initWidgetProps(rowGroup, colGroup, wideTableList)
+  public getCompluteJson(tagGroup, rowGroup, colGroup, wideTableList) {
+    tree.initWidgetProps(tagGroup, rowGroup, colGroup, wideTableList)
     tree.constructMultiwayTree()
     tree.addTotalNodeToTree()
     tree.setNodeParentName()

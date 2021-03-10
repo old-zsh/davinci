@@ -1291,11 +1291,16 @@ export class OperatingPanel extends React.Component<
         selectedViewId,
         requestParams,
         (result) => {
+          
           const rowGroup = rows.items.map((item)=>item.name)
           const colGroup = cols.items.map((item)=>item.name)
-          const tagGroup = ['sum(总停留时间)']
+          const tag = result.columns.filter((item)=>{
+            return item.type == 'DECIMAL'
+          })[0]
+          console.log(result,tag, 'result')
+          const tagGroup = [tag.name]
           const originList = result.resultList
-          const { widgetProps: { transformedWideTableList } } = tree.getCompluteJson(rowGroup,colGroup,originList)
+          const { widgetProps: { transformedWideTableList } } = tree.getCompluteJson(tagGroup, rowGroup,colGroup,originList)
           result.resultList = this.makeOriginJson(transformedWideTableList,rowGroup , colGroup,  tagGroup)
           let { resultList: data, pageNo, pageSize, totalCount } = result
           updatedPagination = !updatedPagination.withPaging
