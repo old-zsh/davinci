@@ -77,7 +77,6 @@ export class RowHeader extends React.Component<IRowHeaderProps, {}> {
           const levelSortKey = rowKeys.reduce((pre, cur) => {
             return (pre = Array.from(new Set([...pre, cur[idx]])));
           }, []);
-          debugger
           const sumText = levelSortKey.findIndex((key) =>
             ["总和", "合计"].includes(key)
           );
