@@ -179,18 +179,13 @@ export class Workbench extends React.Component<
   }
 
   public componentDidMount() {
-    debugger
     this.props.onHideNavigator()
   }
 
   public componentWillReceiveProps(nextProps: IWorkbenchProps) {
     const { currentWidget } = nextProps
-    debugger
     if (currentWidget && currentWidget !== this.props.currentWidget) {
-      // console.log(currentWidget, 'currentWidget')
       const { id, name, description, viewId, config } = currentWidget
-      console.log(currentWidget, 'currentWidget...')
-    
       const {
         controls,
         references,
@@ -457,10 +452,9 @@ export class Workbench extends React.Component<
   }
 
   private setWidgetProps = (widgetProps: IWidgetProps) => {
+    debugger
     const { cols, rows } = widgetProps
     const data = [...(widgetProps.data || this.state.widgetProps.data)]
-    debugger
-    // console.log(data,widgetProps, 'setWidgetProps data')
     const customOrders = cols
       .concat(rows)
       .filter(({ sort }) => sort && sort.sortType === FieldSortTypes.Custom)
@@ -468,7 +462,6 @@ export class Workbench extends React.Component<
         name,
         list: sort[FieldSortTypes.Custom].sortList
       }))
-    debugger
     fieldGroupedSort(data, customOrders)
     this.setState({
       widgetProps: {
@@ -721,6 +714,7 @@ export class Workbench extends React.Component<
                 workbenchQueryMode={workbenchQueryMode}
                 multiDrag={multiDrag}
                 computed={computed}
+                widgetProps = {widgetProps}
                 onViewSelect={this.viewSelect}
                 onChangeAutoLoadData={this.changeAutoLoadData}
                 onSetControls={this.setControls}

@@ -183,7 +183,6 @@ export class DashboardItem extends React.PureComponent<
   private container: HTMLDivElement = null
 
   public componentWillMount() {
-    debugger
     const { itemId, widget, view, onLoadData, container } = this.props
     const { cacheWidgetProps, cacheWidgetId } = this.state
     if (container === 'share') {
@@ -196,7 +195,6 @@ export class DashboardItem extends React.PureComponent<
       model: view.model
     })
     if (!cacheWidgetProps) {
-      debugger
       this.setState({
         widgetProps: { ...widget.config },
         cacheWidgetProps: { ...widget.config },

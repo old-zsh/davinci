@@ -51,11 +51,6 @@ export class RowHeader extends React.Component<IRowHeaderProps, {}> {
       hasMetricNameDimetion
     } = this.props
     const { elementSize, unitMetricHeight } = drawingData
-    // console.log(rowTree, 'rowTree RowHeader')
-    // console.log(colTree, 'colTree RowHeader')
-    console.log(this.props, 'this.props')
-    // console.log(colKeys, 'colKeys RowHeader')
-    // console.log(tree, 'tree RowHeader')
     const {
       color: fontColor,
       fontSize,
@@ -71,57 +66,7 @@ export class RowHeader extends React.Component<IRowHeaderProps, {}> {
       let elementCount = 0
       let x = -1
       let hasAuxiliaryLine = false
-      if (rowKeys.length > 1) {
-        console.log(rowKeys,JSON.stringify(rowKeys), 'rowKeys')
-        const breakFn = (rowKeys, idx) => {
-          const levelSortKey = rowKeys.reduce((pre, cur) => {
-            return (pre = Array.from(new Set([...pre, cur[idx]])));
-          }, []);
-          const sumText = levelSortKey.findIndex((key) =>
-            ["总和", "合计"].includes(key)
-          );
-          levelSortKey.push(...levelSortKey.splice(sumText, 1));
-          let partGroup = levelSortKey.reduce((pre, cur) => {
-            const group = rowKeys.filter((item) => item[idx] === cur);
-            return (pre = [...pre, group]);
-          }, []);
-          if(idx == rows.length - 2){
-            const exitedSumGroup = partGroup.splice(0,partGroup.length-1)
-            exitedSumGroup.forEach((group,index)=>{
-              const sumText = exitedSumGroup[index].findIndex((k)=> ["总和", "合计"].includes(k[k.length-1]))
-              exitedSumGroup[index].push(...exitedSumGroup[index].splice(sumText, 1));
-            })
-            partGroup = [...exitedSumGroup,...partGroup]
-          }
-          return partGroup;
-        };
-        const iteration = (rowKeys, idx) => {
-          if (!idx) return breakFn(rowKeys, idx);
-          rowKeys = rowKeys.reduce((pre, cur) => {
-            if (!isElementOfArray(cur.flat(1)))
-              return (pre = [...pre, breakFn(cur, idx)]);
-            const group = iteration(cur, idx);
-            return (pre = [...pre, group]);
-          }, []);
-          return rowKeys;
-        };
-        const getPartGroupByKey = (divideGroupByLevel, index) => {
-          if (index > Math.max(rows.length - 2,0)) return divideGroupByLevel;
-          divideGroupByLevel = iteration(divideGroupByLevel, index);
-          index++;
-          return getPartGroupByKey(divideGroupByLevel, index);
-        };
-        const result = getPartGroupByKey(rowKeys, 0);
-        const flatItem = (group) => {
-          if (group[0].every((d) => !Array.isArray(d))) return group;
-          group = group.reduce((pre, cur) => {
-            return (pre = [...pre, ...cur]);
-          }, []);
-          return flatItem(group);
-        };
-        rowKeys = flatItem(result)
-      }
-        
+  
 
       rowKeys.forEach((rk, i) => {
         const flatRowKey = rk.join(String.fromCharCode(0))

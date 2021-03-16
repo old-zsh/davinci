@@ -204,13 +204,12 @@ export class Pivot extends React.PureComponent<IPivotProps, IPivotStates> {
     if (!cols.length && !rows.length) {
       this.tree[0] = data.slice()
     } else {
-      debugger
       let groups = cols
       .map((c) => `${c.name}_cols`)
       .concat(rows.map((r) => `${r.name}_rows`))
       .filter((g) => g !== '指标名称')
       const removeRowColPrx = (key) =>{
-        return key.replace(/\_(?<=)\d*(rows|cols)/g,'')
+        return key.replace(/\_(?<=)\d*(rows|cols)\d*/g,'')
       }
       data.reduce((data,item)=>{
         item = groups.reduce((obj,key) => {
@@ -299,7 +298,6 @@ export class Pivot extends React.PureComponent<IPivotProps, IPivotStates> {
     if (!metricNames.length) {
       metricNames.push('无指标值')
     }
-    debugger
     if (~rows.findIndex((r) => r.name === '指标名称')) {
       metricNames.forEach((mn) => {
         const keyArr = []
@@ -412,6 +410,59 @@ export class Pivot extends React.PureComponent<IPivotProps, IPivotStates> {
         }
       })
     })
+    if (this.rowKeys.length > 1) {
+      const breakFn = (rowKeys, idx) => {
+        const levelSortKey = rowKeys.reduce((pre, cur) => {
+          return (pre = Array.from(new Set([...pre, cur[idx]])));
+        }, []);
+        const sumText = levelSortKey.findIndex((key) =>
+          ["总和", "合计"].includes(key)
+        );
+        levelSortKey.push(...levelSortKey.splice(sumText, 1));
+        let partGroup = levelSortKey.reduce((pre, cur) => {
+          const group = rowKeys.filter((item) => item[idx] === cur);
+          return (pre = [...pre, group]);
+        }, []);
+        if(idx == rows.length - 2){
+          const exitedSumGroup = partGroup.splice(0,partGroup.length-1)
+          exitedSumGroup.forEach((group,index)=>{
+            const sumText = exitedSumGroup[index].findIndex((k)=> ["总和", "合计"].includes(k[k.length-1]))
+            exitedSumGroup[index].push(...exitedSumGroup[index].splice(sumText, 1));
+          })
+          partGroup = [...exitedSumGroup,...partGroup]
+        }
+        return partGroup;
+      };
+      const iteration = (rowKeys, idx) => {
+        if (!idx) return breakFn(rowKeys, idx);
+        rowKeys = rowKeys.reduce((pre, cur) => {
+          const isElementOfArray = (group) =>{
+            return group.every((item) => Array.isArray(item))
+          }
+          if (!isElementOfArray(cur.flat(1)))
+            return (pre = [...pre, breakFn(cur, idx)]);
+          const group = iteration(cur, idx);
+          return (pre = [...pre, group]);
+        }, []);
+        return rowKeys;
+      };
+      const getPartGroupByKey = (divideGroupByLevel, index) => {
+        if (index > Math.max(rows.length - 2,0)) return divideGroupByLevel;
+        divideGroupByLevel = iteration(divideGroupByLevel, index);
+        index++;
+        return getPartGroupByKey(divideGroupByLevel, index);
+      };
+      const result = getPartGroupByKey(this.rowKeys, 0);
+      const flatItem = (group) => {
+        if (group[0].every((d) => !Array.isArray(d))) return group;
+        group = group.reduce((pre, cur) => {
+          return (pre = [...pre, ...cur]);
+        }, []);
+        return flatItem(group);
+      };
+      this.rowKeys = flatItem(result)
+    }
+
     
   }
 

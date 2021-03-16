@@ -139,6 +139,7 @@ interface IOperatingPanelProps {
   autoLoadData: boolean
   expired: number
   workbenchQueryMode: WorkbenchQueryMode
+  widgetProps: IWidgetProps
   multiDrag: boolean
   computed: any[]
   originalComputed: any[]
@@ -345,7 +346,6 @@ export class OperatingPanel extends React.Component<
         if (modelColumn) {
           dataParams.cols.items = dataParams.cols.items.concat({
             ...c,
-            // name: `${c.name}_col`,
             from: 'cols',
             type: 'category' as DragType,
             visualType:
@@ -811,6 +811,7 @@ export class OperatingPanel extends React.Component<
   }
 
   private toggleRowsAndCols = () => {
+    debugger
     const { dataParams, styleParams } = this.state
     const { cols, rows } = dataParams
 
@@ -1287,41 +1288,57 @@ export class OperatingPanel extends React.Component<
       selectedViewId &&
       requestParamString !== this.lastRequestParamString &&
       workbenchQueryMode === WorkbenchQueryMode.Immediately
-      
+
+    console.log(mergedDataParams, this.props.widgetProps, 'mergedDataParams')
+    const rowGroup = rows.items.map((item) => `${item.name}_rows`)
+    const colGroup = cols.items.reduce((group, cur) => {
+      const exitGroup = group.filter((item) => item === `${cur.name}_cols`)
+      if (exitGroup.length) {
+        group = [...group, `${cur.name}_cols${exitGroup.length}`]
+      } else {
+        group = [...group, `${cur.name}_cols`]
+      }
+      return group
+    }, [])
     if (needRequest) {
       this.lastRequestParamString = requestParamString
       onLoadData(
         selectedViewId,
         requestParams,
         (result) => {
-          let rowGroup = rows.items.map((item)=> `${item.name}_rows`)
-          let colGroup = cols.items.map((item)=>`${item.name}_cols`)
-          const tag = result.columns.filter((item)=>{
+          const tag = result.columns.filter((item) => {
             return item.type == 'DECIMAL'
           })[0]
           const tagGroup = [tag.name]
-        const setOriginJsonByKey = (list)=> {
-          const concatRowCol = [ ...colGroup, ...rowGroup, ...tagGroup, ]
-          const wideList = list.reduce((pre,cur)=>{
-            cur = concatRowCol.reduce((obj,key) => {
-              obj[key] = cur[key.replace(/\_(?<=)\d*(rows|cols)/g,'')]
-              return obj
-            },{})
-            return pre = [...pre,cur]
-          },[])
-          return wideList
-        }
-          
+          const setOriginJsonByKey = (list) => {
+            const concatRowCol = [...colGroup, ...rowGroup, ...tagGroup]
+            const wideList = list.reduce((pre, cur) => {
+              cur = concatRowCol.reduce((obj, key) => {
+                obj[key] = cur[key.replace(/\_(?<=)\d*(rows|cols)\d*/g, '')]
+                return obj
+              }, {})
+              return (pre = [...pre, cur])
+            }, [])
+            return wideList
+          }
 
           const wideTableList = result.resultList
           const options = {
-            tagGroup, rowGroup,colGroup, wideTableList: setOriginJsonByKey(wideTableList)
+            tagGroup,
+            rowGroup,
+            colGroup,
+            wideTableList: setOriginJsonByKey(wideTableList)
           }
-          console.log(options,setOriginJsonByKey(wideTableList), '设置的值 kkkk')
+          const {
+            widgetProps: { transformedWideTableList }
+          } = tree.getCompluteJson(options)
+          result.resultList = this.makeOriginJson(
+            transformedWideTableList,
+            rowGroup,
+            colGroup,
+            tagGroup
+          )
 
-          const { widgetProps: { transformedWideTableList } } = tree.getCompluteJson(options)
-          result.resultList = this.makeOriginJson(transformedWideTableList,rowGroup , colGroup,  tagGroup)
-        
           let { resultList: data, pageNo, pageSize, totalCount } = result
           updatedPagination = !updatedPagination.withPaging
             ? updatedPagination
@@ -1484,7 +1501,7 @@ export class OperatingPanel extends React.Component<
   private chartSelect = (chart: IChartInfo) => {
     const { mode, dataParams } = this.state
     const { cols, rows, metrics } = dataParams
-    console.log(cols,rows, '设置的值')
+    console.log(cols, rows, '设置的值')
     if (mode === 'pivot') {
       if (
         !(metrics.items.length === 1 && metrics.items[0].chart.id === chart.id)
@@ -1492,7 +1509,7 @@ export class OperatingPanel extends React.Component<
         metrics.items.forEach((i) => {
           i.chart = chart
         })
-        if (chart.id !== PivotTypes.PivotTable) { 
+        if (chart.id !== PivotTypes.PivotTable) {
           cols.items = cols.items.filter((c) => c.name !== '指标名称')
           rows.items = rows.items.filter((r) => r.name !== '指标名称')
         }

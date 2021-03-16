@@ -763,7 +763,6 @@ class MultiwayTree {
   }
   public buildJson() {
     console.log(tree, 'test测试 tree的值')
-    debugger
 
     let path = {}
     this.widgetProps.treeRootTagNodeList
@@ -883,7 +882,6 @@ class MultiwayTree {
             path,
             flatGroup[0].parentName
           ).isBranchBreakUp
-          // debugger
           group.forEach((item: any) => {
             const findIndex = this.widgetProps.treeRootTagNodeList.findIndex((o) =>
               isType ? o === item[0] : o === item[item.length - 1]

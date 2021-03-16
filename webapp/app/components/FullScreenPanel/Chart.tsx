@@ -50,8 +50,7 @@ const FullScreenChart: React.FC<IFullScreenChartProps> = memo(
     model,
     onLoadData
   }) => {
-    debugger
-    const { queryVariables, pagination, renderType, data, loading } = useMemo(() => {
+      const { queryVariables, pagination, renderType, data, loading } = useMemo(() => {
       const { renderType, datasource, loading, queryConditions } = info
       const { variables, linkageVariables, globalVariables, pagination } = queryConditions
       return {

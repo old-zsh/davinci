@@ -34,7 +34,6 @@ export function* getWidgets(action: WidgetActionType) {
   if (action.type !== ActionTypes.LOAD_WIDGETS) {
     return
   }
-  debugger
   const { projectId } = action.payload
   try {
     const result = yield call(request, `${api.widget}?projectId=${projectId}`)
@@ -132,7 +131,6 @@ export function* editWidget(action: WidgetActionType) {
   }
 
   const { widget, resolve } = action.payload
-  debugger
   try {
     yield call(request, {
       method: 'put',

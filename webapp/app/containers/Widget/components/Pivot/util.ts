@@ -45,7 +45,7 @@ export function isSumNodeEndReg(item, key) {
   return reg.test(key)
 }
 export function replaceRowColPrx(key){
-  return key.replace(/\_(?<=)\d*(rows|cols)/g,'')
+  return key.replace(/\_(?<=)\d*(rows|cols)\d*/g,'')
 }
 export function isElementOfArray(group) {
   return group.every((item) => Array.isArray(item))

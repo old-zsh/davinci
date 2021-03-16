@@ -234,7 +234,6 @@ export class Widget extends React.Component<
   }
 
   public render () {
-    debugger
     const { loading, empty, ...rest } = this.props
     const { width, height } = this.state
 

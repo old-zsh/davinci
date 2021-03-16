@@ -43,8 +43,8 @@ class MultiwayTree {
     originListItem: {}
   } as any
   public labelText = {
-    rootLevel: { name_level0_col: 'root'},
-    rootKey: ['name_level0_col'],
+    rootLevel: { name_level0_cols: 'root'},
+    rootKey: ['name_level0_cols'],
     sumConcat: ['总和', '合计'],
     sumText: '总和',
     subSumText: '合计'
@@ -410,7 +410,7 @@ class MultiwayTree {
         isSumLastNode(tree.getColArrayFirstParent(parentNode).key)) ||
       (getOriginKey(parentNode.key) ===
         this.widgetProps.rowArray[this.widgetProps.rowArray.length - 1] &&
-        isLastSumNode)
+        isLastSumNode && this.widgetProps.colArray.length)
     const isSubSumText = isLastSumNode && !isQuotaSum(nodeValue)
     if (isRowSumText || isColSumText || isColStartSumText) {
       return sumText
@@ -439,7 +439,8 @@ class MultiwayTree {
       isLastSumNode
     } = copyParems
     let polymerizeGroup
-    if (isRowColLastLevel(parentNode, this.widgetProps.rowArray)) {
+    const isRowColLastLevels = isRowColLastLevel(parentNode, this.widgetProps.rowArray)
+    if (isRowColLastLevels && this.widgetProps.colArray.length) {
       polymerizeGroup = tree.getMergePartBranch(parentNode)
     }
     // 普通节点的进行复制 polymerizeGroup 为 聚合后的头部
@@ -480,9 +481,8 @@ class MultiwayTree {
       }
       if (currentNode.length) {
         newNode = tree.copyPolymerizeNoramlChild(copyParems)
-        newNode.push(
-          tree.copyIteration(deepCopy, currentNode[0], parentNode, true)
-        )
+        const copyNode = tree.copyIteration(deepCopy, currentNode[0], parentNode, true)
+        newNode.push(copyNode)
       } else {
         Object.keys(currentNode).forEach((key) => {
           const isEmpty = Array.isArray(newNode[key])
@@ -643,7 +643,6 @@ class MultiwayTree {
       const obj = {}
       const iteration = (item, obj) => {
         if (!item.parent) {
-          console.log(obj, 'obj...')
           return this.widgetProps.transformedWideTableList.push(obj)
         }
         if(isQuotaSum(item.key)){
@@ -681,6 +680,7 @@ class MultiwayTree {
     tree.addTotalNodeToTree()
     console.log(tree, 'tree设置的值  2')
     tree.setNodeParentName()
+    console.log(this.widgetProps.treeRootTagNodeList, 'this.widgetProps.treeRootTagNodeList')
     tree.calcSumNodeDFS()
     tree.getJson()
     return tree
