@@ -179,14 +179,18 @@ export class Workbench extends React.Component<
   }
 
   public componentDidMount() {
+    debugger
     this.props.onHideNavigator()
   }
 
   public componentWillReceiveProps(nextProps: IWorkbenchProps) {
     const { currentWidget } = nextProps
+    debugger
     if (currentWidget && currentWidget !== this.props.currentWidget) {
       // console.log(currentWidget, 'currentWidget')
       const { id, name, description, viewId, config } = currentWidget
+      console.log(currentWidget, 'currentWidget...')
+    
       const {
         controls,
         references,
@@ -455,6 +459,7 @@ export class Workbench extends React.Component<
   private setWidgetProps = (widgetProps: IWidgetProps) => {
     const { cols, rows } = widgetProps
     const data = [...(widgetProps.data || this.state.widgetProps.data)]
+    debugger
     // console.log(data,widgetProps, 'setWidgetProps data')
     const customOrders = cols
       .concat(rows)
@@ -463,6 +468,7 @@ export class Workbench extends React.Component<
         name,
         list: sort[FieldSortTypes.Custom].sortList
       }))
+    debugger
     fieldGroupedSort(data, customOrders)
     this.setState({
       widgetProps: {

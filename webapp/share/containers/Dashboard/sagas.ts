@@ -148,6 +148,7 @@ export function* getWidget(action: DashboardActionType) {
   if (action.type !== ActionTypes.LOAD_SHARE_WIDGET) {
     return
   }
+  debugger
   const { widgetGetted } = DashboardActions
   const { token, resolve, reject } = action.payload
   const shareType = yield select(makeSelectShareType())
@@ -175,6 +176,7 @@ export function* getWidget(action: DashboardActionType) {
       }),
       {}
     )
+    debugger
     yield put(widgetGetted(formedWidget, formedViews))
     const getWidgets: IWidgetFormed = yield select(makeSelectWidgets())
     operationWidgetProps.widgetIntoPool(getWidgets)

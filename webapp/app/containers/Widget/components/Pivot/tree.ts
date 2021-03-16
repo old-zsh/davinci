@@ -1,4 +1,3 @@
-
 import Node from './node'
 import cloneDeep from 'lodash/cloneDeep'
 import {
@@ -11,22 +10,23 @@ import {
   isSumNodeEnd,
   isNodeIncludeArray,
   isSumNodeEndReg,
-  isQdReg
+  isQdReg,
+  replaceRowColPrx
 } from './util'
 class MultiwayTree {
   public treePointItem = []
   public widgetProps = {
     root: null,
     wideTableList: [],
-    rootArray: ['name_level0'],
     tagGroup: [],
     colArray: [],
     rowArray: [],
     transformedWideTableList: [],
-    treeRootTagNodeList: []
+    treeRootTagNodeList: [],
+    rowColConcat: []
   }
-  public arrTarget = []
   public pointOption = {
+    
     treePointItem: [],
     isExistEqualParent: false,
     parentKey: '',
@@ -40,9 +40,15 @@ class MultiwayTree {
     },
     nodeValue: null,
     listIdx: 0,
-    originListItem: {},
-
+    originListItem: {}
   } as any
+  public labelText = {
+    rootLevel: { name_level0_col: 'root'},
+    rootKey: ['name_level0_col'],
+    sumConcat: ['总和', '合计'],
+    sumText: '总和',
+    subSumText: '合计'
+  }
 
   constructor() {}
   public traverseBF(callback) {
@@ -52,7 +58,7 @@ class MultiwayTree {
     let currentNode = queue.shift()
 
     while (!found && currentNode) {
-      found = callback(currentNode) === true ? true : false
+      found = !!callback(currentNode) 
       if (!found) {
         queue.push(...currentNode.children)
         currentNode = queue.shift()
@@ -60,6 +66,7 @@ class MultiwayTree {
     }
     return found
   }
+
   public contains(callback, traversal) {
     traversal.call(this, callback)
   }
@@ -97,31 +104,36 @@ class MultiwayTree {
     }
   }
 
-
-  public getExistEqualNode (labelText, treePointItem, index){
-    return treePointItem.filter((item, idx) => {
+  public getEqualNode(labelText, treePointItem, index) {
+    return treePointItem
+      .filter((item, idx) => {
         if (Array.isArray(item)) {
-          return tree.getExistEqualNode(labelText,item, index)
+          return tree.getEqualNode(labelText, item, index)
         } else {
           return item.value === labelText && index === idx
         }
       })
       .shift()
   }
-  public isEqualTreeNode(index, treeNodeGroup) {
-    const {originListItem, levelKey, listIdx} = this.pointOption
+
+  public getEqualParent(index, treeNodeGroup) {
+    const { originListItem, levelKey, listIdx } = this.pointOption
     const labelText = originListItem[levelKey]
     if (!listIdx) {
       return (this.pointOption.isExistEqualParent = false)
     }
-    this.pointOption.existEqualNode = tree.getExistEqualNode(labelText, this.treePointItem,index)
+    this.pointOption.existEqualNode = tree.getEqualNode(
+      labelText,
+      this.treePointItem,
+      index
+    )
 
     const existEqualNodeOfParentKey = this.treePointItem
       .filter((item) => this.pointOption.existEqualNode?.parentId === item.key)
       .pop()?.key
 
     this.pointOption.initParentKey = this.pointOption.isMetrics
-      ? treeNodeGroup.map((o) => o).pop().initKey
+      ? treeNodeGroup.map((item) => item).pop().initKey
       : this.pointOption.parentKey
 
     const originParentKey = treeNodeGroup
@@ -130,28 +142,27 @@ class MultiwayTree {
     this.pointOption.isExistEqualParent =
       originParentKey === existEqualNodeOfParentKey
   }
-  public getNodeParentId = (treeNodeGroup) => {
-    const {
-      isExistEqualParent,
-      initParentKey,
-      listIdx,
-    } = this.pointOption
+
+  public getParentId = (treeNodeGroup) => {
+    const { isExistEqualParent, initParentKey, listIdx } = this.pointOption
     if (isExistEqualParent) {
       return this.pointOption.existEqualNode.parentId
     } else {
-      if(this.pointOption.isMetrics){
-        return treeNodeGroup[treeNodeGroup.length-1].initKey
+      if (this.pointOption.isMetrics) {
+        return treeNodeGroup[treeNodeGroup.length - 1].initKey
       }
-      if(listIdx == 0){
+      if (listIdx == 0) {
         return this.pointOption.parentKey
       } else {
-        const exitedNode = treeNodeGroup.filter((item) => item.initKey == initParentKey).pop()
+        const exitedNode = treeNodeGroup
+          .filter((item) => item.initKey == initParentKey)
+          .pop()
         return exitedNode.key
       }
-      
     }
   }
-  public buildTreeNodeData = (treeNodeGroup) => {
+
+  public getPointAttribute = (treeNodeGroup) => {
     const {
       isMetrics,
       isExistEqualParent,
@@ -160,45 +171,47 @@ class MultiwayTree {
       levelKey,
       originListItem
     } = this.pointOption
-    
+
     return {
       data: isMetrics ? originListItem[levelKey] : null,
       value: isMetrics ? levelKey : originListItem[levelKey],
       initKey,
-      parentId: tree.getNodeParentId(treeNodeGroup),
+      parentId: tree.getParentId(treeNodeGroup),
       key: isExistEqualParent ? existEqualNode.key : initKey
     }
   }
-  public buildTreePointItem(originListItem, listIdx) {
+
+  public getLevelGroupAttribute(originListItem, listIdx) {
     const treeNodeGroup = []
     const targetNodeGroup = []
-    originListItem = { name_level0: 'root', ...originListItem }
+    originListItem = { ...(this.labelText.rootLevel), ...originListItem}
     const levelKeyGroup = Object.keys(originListItem)
     levelKeyGroup.forEach((levelKey, index) => {
+      const isMetrics = this.widgetProps.tagGroup.includes(levelKey)
+      const parentKey = `${levelKeyGroup[index - 1]}_${listIdx}`
+      const initKey = `${levelKey}_${listIdx}`
       this.pointOption = {
-        initKey: `${levelKey}_${listIdx}`,
-        parentKey: `${levelKeyGroup[index - 1]}_${listIdx}`,
-        isMetrics: this.widgetProps.tagGroup.includes(levelKey),
+        initKey,
+        parentKey,
+        isMetrics,
         levelKey,
         listIdx,
-        originListItem,
+        originListItem
       }
-      tree.isEqualTreeNode(index,treeNodeGroup)
+      tree.getEqualParent(index, treeNodeGroup)
       Array.prototype.push.call(
         this.pointOption.isMetrics ? targetNodeGroup : treeNodeGroup,
-        tree.buildTreeNodeData(treeNodeGroup)
+        tree.getPointAttribute(treeNodeGroup)
       )
     })
     return [...treeNodeGroup, targetNodeGroup]
   }
 
-  public constructMultiwayTree() {
-    
+  public setMultiwayTree() {
     this.widgetProps.wideTableList.forEach((item, index) => {
       this.pointOption.existEqualNode = null
       this.pointOption.isExistEqualParent = false
-    
-      this.treePointItem = tree.buildTreePointItem(item, index)
+      this.treePointItem = tree.getLevelGroupAttribute(item, index)
       this.treePointItem.forEach((item, i) => {
         if (!item.length && !item.parentId) {
           return (tree = tree.add(item, null))
@@ -213,16 +226,19 @@ class MultiwayTree {
       })
     })
   }
+
+
   // 获取父节点首个不为sum
   public getFirstNotSum(node) {
-      if (!isSumNodeEnd(node.key)) {
-        return node
-      }
-      if (node.value == '合计' && node.parent.value !== '合计'){
-        return node.parent
-      }
-      node = node.parent
-      return tree.getFirstNotSum(node)
+    const { subSumText } = this.labelText
+    if (!isSumNodeEnd(node.key)) {
+      return node
+    }
+    if (node.value == subSumText && node.parent.value !== subSumText) {
+      return node.parent
+    }
+    node = node.parent
+    return tree.getFirstNotSum(node)
   }
   // 获取分支集合 总计和小计两部分
   public getPartBranch(parentNode) {
@@ -233,7 +249,7 @@ class MultiwayTree {
         const args = { backParent, parentNode }
         const getRoot = (args) => {
           if (
-            this.widgetProps.rootArray.includes(
+            this.labelText.rootKey.includes(
               getOriginKey(args.backParent.key)
             )
           ) {
@@ -329,7 +345,7 @@ class MultiwayTree {
   public decideSumBranchType(node) {
     const isBeiginNoneParentSumKey = getOriginKey(tree.getFirstNotSum(node).key)
 
-    if (isBeiginNoneParentSumKey === 'name_level0') {
+    if (isBeiginNoneParentSumKey === this.labelText.rootKey[0]) {
       return 'rowSum'
     } else if (
       isBeiginNoneParentSumKey ===
@@ -346,6 +362,7 @@ class MultiwayTree {
       return 'colSubSum'
     }
   }
+
   public getColArrayFirstParent(node) {
     const getColArrayFirstParent = (node) => {
       if (getOriginKey(node.key) === this.widgetProps.colArray[0]) return node
@@ -369,10 +386,11 @@ class MultiwayTree {
   // 判断总和和合计文字显示
   public decideSumOrSubSumTextDisplay(options) {
     const { nodeValue, isLastSumNode, parentNode } = options
+    const { subSumText, sumText } = this.labelText
     const isRowSumText =
       !isRowColLastLevel(parentNode, this.widgetProps.rowArray) &&
       isNodeIncludeArray(
-        [...this.widgetProps.rowArray, ...this.widgetProps.rootArray],
+        [...this.widgetProps.rowArray, ...this.labelText.rootKey],
         parentNode
       ) &&
       ['rowSum'].includes(tree.decideSumBranchType(parentNode))
@@ -395,9 +413,9 @@ class MultiwayTree {
         isLastSumNode)
     const isSubSumText = isLastSumNode && !isQuotaSum(nodeValue)
     if (isRowSumText || isColSumText || isColStartSumText) {
-      return '总和'
+      return sumText
     } else if (isSubSumText) {
-      return '合计'
+      return subSumText
     } else {
       return nodeValue
     }
@@ -499,19 +517,14 @@ class MultiwayTree {
     }
     return tree.copyIteration(deepCopy, currentNode, parentNode, true)
   }
+
   public addTotalNodeToTree() {
-    const rowColConcat = [
-      ...this.widgetProps.rowArray,
-      ...this.widgetProps.colArray,
-      ...this.widgetProps.rootArray
-    ]
-    rowColConcat.splice(rowColConcat.length - 2, 1) // 注意
+    this.widgetProps.rowColConcat.splice(this.widgetProps.rowColConcat.length - 2, 1) // 注意
     const queue = [this.widgetProps.root]
     let currentNode = queue.shift()
-    console.log(rowColConcat, 'rowColConcat')
     while (
       currentNode &&
-      rowColConcat.includes(getOriginKey(currentNode.key))
+      this.widgetProps.rowColConcat.includes(getOriginKey(currentNode.key))
     ) {
       if (currentNode) {
         queue.push(...currentNode.children)
@@ -592,13 +605,13 @@ class MultiwayTree {
       }
       // path level为总和总计, 筛选非 总计总和的分支
       searchTarget = currentQueue.filter((item) => {
-        if (['合计', '总和'].includes(path[initLevel])) {
+        if (this.labelText.sumConcat.includes(path[initLevel])) {
           return item.value !== path[initLevel]
         } else {
           return item.value == path[initLevel]
         }
       })
-      if (['合计', '总和'].includes(path[initLevel])) {
+      if (this.labelText.sumConcat.includes(path[initLevel])) {
         // 筛选 currentQueue中 非sumNode分支的和
         target.data = tree.getUnSumNodeReduceSum(currentQueue)
       } else {
@@ -624,23 +637,33 @@ class MultiwayTree {
     // 最后searchTarget为tagNode
     return searchTarget[0].data
   }
+
   public getJson() {
     this.widgetProps.treeRootTagNodeList.forEach((item) => {
       const obj = {}
       const iteration = (item, obj) => {
         if (!item.parent) {
+          console.log(obj, 'obj...')
           return this.widgetProps.transformedWideTableList.push(obj)
         }
-        obj[getOriginKey(item.key)] = isQuotaSum(item.key)
-          ? item.data
-          : item.value
+        if(isQuotaSum(item.key)){
+          obj[getOriginKey(item.key)] = item.data
+        } else {
+          obj[getOriginKey(item.key)] = item.value
+        }
         item = item.parent
         return iteration(item, obj)
       }
       iteration(item, obj)
     })
   }
-  public initWidgetProps(tagGroup,rowGroup, colGroup, wideTableList) {
+  public initWidgetProps(options) {
+    const { tagGroup, rowGroup, colGroup, wideTableList } = options
+    this.widgetProps.rowColConcat = [
+      ...colGroup,
+      ...rowGroup,
+      ...this.labelText.rootKey
+    ]
     this.widgetProps.tagGroup = tagGroup
     this.widgetProps.rowArray = colGroup
     this.widgetProps.colArray = rowGroup
@@ -648,12 +671,15 @@ class MultiwayTree {
     this.widgetProps.root = null
     this.widgetProps.treeRootTagNodeList = []
     this.widgetProps.transformedWideTableList = []
+   
   }
 
-  public getCompluteJson(tagGroup, rowGroup, colGroup, wideTableList) {
-    tree.initWidgetProps(tagGroup, rowGroup, colGroup, wideTableList)
-    tree.constructMultiwayTree()
+  public getCompluteJson(options) {
+    tree.initWidgetProps(options)
+    tree.setMultiwayTree()
+    console.log(tree, 'tree设置的值  1')
     tree.addTotalNodeToTree()
+    console.log(tree, 'tree设置的值  2')
     tree.setNodeParentName()
     tree.calcSumNodeDFS()
     tree.getJson()

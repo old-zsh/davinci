@@ -199,10 +199,26 @@ export class Pivot extends React.PureComponent<IPivotProps, IPivotStates> {
 
   private getRenderData = (props) => {
     const { width, height, cols, rows, metrics, data, xAxis, dimetionAxis } = props
+    
     this.rowHeaderWidths = rows.map((r) => getPivotContentTextWidth(r, 'bold'))
     if (!cols.length && !rows.length) {
       this.tree[0] = data.slice()
     } else {
+      debugger
+      let groups = cols
+      .map((c) => `${c.name}_cols`)
+      .concat(rows.map((r) => `${r.name}_rows`))
+      .filter((g) => g !== '指标名称')
+      const removeRowColPrx = (key) =>{
+        return key.replace(/\_(?<=)\d*(rows|cols)/g,'')
+      }
+      data.reduce((data,item)=>{
+        item = groups.reduce((obj,key) => {
+          obj[key] = item[removeRowColPrx(key)]
+          return obj
+        },{})
+        return item
+      },[])
       data.forEach((record) => {
         this.getRowKeyAndColKey(props, record, !!dimetionAxis)
       })
@@ -283,7 +299,7 @@ export class Pivot extends React.PureComponent<IPivotProps, IPivotStates> {
     if (!metricNames.length) {
       metricNames.push('无指标值')
     }
-
+    debugger
     if (~rows.findIndex((r) => r.name === '指标名称')) {
       metricNames.forEach((mn) => {
         const keyArr = []
@@ -293,7 +309,8 @@ export class Pivot extends React.PureComponent<IPivotProps, IPivotStates> {
           'bold'
         )
         rows.forEach((r, i) => {
-          const value = r.name === '指标名称' ? mn : record[r.name]
+          const rowName = record[`${r.name}_rows`] ? record[`${r.name}_rows`] : record[`${r.name}`]
+          const value = r.name === '指标名称' ? mn : rowName
           const textWidth = r.name === '指标名称'
             ? metricTextWidth
             : getPivotContentTextWidth(value, 'bold')
@@ -305,7 +322,8 @@ export class Pivot extends React.PureComponent<IPivotProps, IPivotStates> {
       flatRowKeys = rowKey.reduce((arr, keys) => arr.concat(keys.join(String.fromCharCode(0))), [])
     } else {
       rows.forEach((r, i) => {
-        const value = record[r.name]
+        const rowName = record[`${r.name}_rows`] ? record[`${r.name}_rows`] : record[`${r.name}`]
+        const value = rowName
         const textWidth = getPivotContentTextWidth(value, 'bold')
         this.rowHeaderWidths[i] = Math.max(textWidth, this.rowHeaderWidths[i] || 0)
         rowKey.push(value)
@@ -318,7 +336,8 @@ export class Pivot extends React.PureComponent<IPivotProps, IPivotStates> {
       metricNames.forEach((mn) => {
         const keyArr = []
         cols.forEach((c) => {
-          const value = c.name === '指标名称' ? mn : record[c.name]
+          const rowName = record[`${c.name}_cols`] ? record[`${c.name}_cols`] : record[`${c.name}`]
+          const value = c.name === '指标名称' ? mn : rowName
           keyArr.push(value)
         })
         colKey.push(keyArr)
@@ -326,7 +345,8 @@ export class Pivot extends React.PureComponent<IPivotProps, IPivotStates> {
       flatColKeys = colKey.reduce((arr, keys) => arr.concat(keys.join(String.fromCharCode(0))), [])
     } else {
       cols.forEach((c) => {
-        colKey.push(record[c.name])
+        const rowName = record[`${c.name}_cols`] ? record[`${c.name}_cols`] : record[`${c.name}`]
+        colKey.push(rowName)
       })
       flatColKeys = [colKey.join(String.fromCharCode(0))]
     }

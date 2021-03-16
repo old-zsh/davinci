@@ -48,6 +48,7 @@ export type WidgetMode = 'pivot' | 'chart'
 export type Coordinate = 'cartesian' | 'polar' | 'other'
 
 export interface IWidgetDimension {
+  from: any
   name: string
   field: IFieldConfig
   format: IFieldFormatConfig
@@ -233,6 +234,7 @@ export class Widget extends React.Component<
   }
 
   public render () {
+    debugger
     const { loading, empty, ...rest } = this.props
     const { width, height } = this.state
 

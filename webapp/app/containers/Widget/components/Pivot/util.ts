@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2021-02-10 11:13:52
- * @LastEditTime: 2021-03-09 15:02:19
+ * @LastEditTime: 2021-03-15 18:20:42
  * @LastEditors: Please set LastEditors
  * @Description: In User Settings Edit
  * @FilePath: /davinci-fork/davinci/webapp/app/containers/Widget/components/Pivot/util.js
@@ -43,6 +43,9 @@ export function isNodeIncludeArray(array, node) {
 export function isSumNodeEndReg(item, key) {
   let reg = RegExp('_(?<=)S*' + item, 'g')
   return reg.test(key)
+}
+export function replaceRowColPrx(key){
+  return key.replace(/\_(?<=)\d*(rows|cols)/g,'')
 }
 export function isElementOfArray(group) {
   return group.every((item) => Array.isArray(item))

@@ -277,6 +277,7 @@ export class OperatingPanel extends React.Component<
 
   public componentWillReceiveProps(nextProps: IOperatingPanelProps) {
     const { formedViews, selectedViewId, originalWidgetProps } = nextProps
+    console.log(nextProps, 'nextProps...')
     if (selectedViewId && selectedViewId !== this.props.selectedViewId) {
       const selectedView = formedViews[selectedViewId]
       const model = selectedView.model
@@ -344,6 +345,7 @@ export class OperatingPanel extends React.Component<
         if (modelColumn) {
           dataParams.cols.items = dataParams.cols.items.concat({
             ...c,
+            // name: `${c.name}_col`,
             from: 'cols',
             type: 'category' as DragType,
             visualType:
@@ -368,7 +370,7 @@ export class OperatingPanel extends React.Component<
           })
         }
       })
-
+      console.log(dataParams, 'dataParams')
       if (secondaryMetrics) {
         dataParams.metrics = {
           title: '左轴指标',
@@ -1156,6 +1158,7 @@ export class OperatingPanel extends React.Component<
           }))
       )
     }
+    console.log(groups, 'groups')
     if (size) {
       aggregators = aggregators.concat(
         size.items.map((l) => ({
@@ -1284,24 +1287,41 @@ export class OperatingPanel extends React.Component<
       selectedViewId &&
       requestParamString !== this.lastRequestParamString &&
       workbenchQueryMode === WorkbenchQueryMode.Immediately
-
+      
     if (needRequest) {
       this.lastRequestParamString = requestParamString
       onLoadData(
         selectedViewId,
         requestParams,
         (result) => {
-          
-          const rowGroup = rows.items.map((item)=>item.name)
-          const colGroup = cols.items.map((item)=>item.name)
+          let rowGroup = rows.items.map((item)=> `${item.name}_rows`)
+          let colGroup = cols.items.map((item)=>`${item.name}_cols`)
           const tag = result.columns.filter((item)=>{
             return item.type == 'DECIMAL'
           })[0]
-          console.log(result,tag, 'result')
           const tagGroup = [tag.name]
-          const originList = result.resultList
-          const { widgetProps: { transformedWideTableList } } = tree.getCompluteJson(tagGroup, rowGroup,colGroup,originList)
+        const setOriginJsonByKey = (list)=> {
+          const concatRowCol = [ ...colGroup, ...rowGroup, ...tagGroup, ]
+          const wideList = list.reduce((pre,cur)=>{
+            cur = concatRowCol.reduce((obj,key) => {
+              obj[key] = cur[key.replace(/\_(?<=)\d*(rows|cols)/g,'')]
+              return obj
+            },{})
+            return pre = [...pre,cur]
+          },[])
+          return wideList
+        }
+          
+
+          const wideTableList = result.resultList
+          const options = {
+            tagGroup, rowGroup,colGroup, wideTableList: setOriginJsonByKey(wideTableList)
+          }
+          console.log(options,setOriginJsonByKey(wideTableList), '设置的值 kkkk')
+
+          const { widgetProps: { transformedWideTableList } } = tree.getCompluteJson(options)
           result.resultList = this.makeOriginJson(transformedWideTableList,rowGroup , colGroup,  tagGroup)
+        
           let { resultList: data, pageNo, pageSize, totalCount } = result
           updatedPagination = !updatedPagination.withPaging
             ? updatedPagination

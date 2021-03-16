@@ -46,6 +46,7 @@ const widgetReducer = (
       case ActionTypes.LOAD_WIDGETS_SUCCESS:
         draft.loading = false
         draft.widgets = action.payload.widgets
+        debugger
         break
       case ActionTypes.LOAD_WIDGETS_FAILURE:
         draft.loading = false
@@ -85,6 +86,7 @@ const widgetReducer = (
       case ActionTypes.LOAD_WIDGET_DETAIL_SUCCESS:
         draft.loading = false
         draft.currentWidget = action.payload.detail
+        debugger
         break
       case ActionTypes.LOAD_WIDGET_DETAIL_FAILURE:
         draft.loading = false
