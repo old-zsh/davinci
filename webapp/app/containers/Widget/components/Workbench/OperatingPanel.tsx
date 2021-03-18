@@ -7,6 +7,7 @@ import widgetlibs from '../../config'
 import { IDataRequestBody } from 'app/containers/Dashboard/types'
 import { IViewBase, IFormedViews, IView } from 'containers/View/types'
 import { ViewModelVisualTypes, ViewModelTypes } from 'containers/View/constants'
+import { onSectionChange } from './ConfigSections/SpecSection/specs/util'
 import Dropbox, {
   DropboxType,
   DropType,
@@ -71,6 +72,7 @@ import {
   getPivotModeSelectedCharts,
   checkChartEnable
 } from '../util'
+import { isSumNodeEndReg, replaceRowColPrx } from '../Pivot/util'
 import { PIVOT_DEFAULT_SCATTER_SIZE_TIMES } from 'app/globalConstants'
 import PivotTypes from '../../config/pivot/PivotTypes'
 
@@ -137,6 +139,8 @@ interface IOperatingPanelProps {
   limit: number
   cache: boolean
   autoLoadData: boolean
+  sum: boolean
+  sumType: string[]
   expired: number
   workbenchQueryMode: WorkbenchQueryMode
   widgetProps: IWidgetProps
@@ -149,7 +153,9 @@ interface IOperatingPanelProps {
   onLimitChange: (value) => void
   onCacheChange: (e: RadioChangeEvent) => void
   onChangeAutoLoadData: (e: RadioChangeEvent) => void
+  onChangeSum: (e: RadioChangeEvent) => void
   onExpiredChange: (expired: number) => void
+  onSumTypeChange: (sumType: number) => void
   onSetComputed: (computesField: any[]) => void
   onDeleteComputed: (computesField: any[]) => void
   onSetWidgetProps: (widgetProps: IWidgetProps) => void
@@ -278,7 +284,6 @@ export class OperatingPanel extends React.Component<
 
   public componentWillReceiveProps(nextProps: IOperatingPanelProps) {
     const { formedViews, selectedViewId, originalWidgetProps } = nextProps
-    console.log(nextProps, 'nextProps...')
     if (selectedViewId && selectedViewId !== this.props.selectedViewId) {
       const selectedView = formedViews[selectedViewId]
       const model = selectedView.model
@@ -370,7 +375,6 @@ export class OperatingPanel extends React.Component<
           })
         }
       })
-      console.log(dataParams, 'dataParams')
       if (secondaryMetrics) {
         dataParams.metrics = {
           title: '左轴指标',
@@ -811,7 +815,6 @@ export class OperatingPanel extends React.Component<
   }
 
   private toggleRowsAndCols = () => {
-    debugger
     const { dataParams, styleParams } = this.state
     const { cols, rows } = dataParams
 
@@ -1060,7 +1063,54 @@ export class OperatingPanel extends React.Component<
       orders
     })
   }
-
+  public setOriginOption(dataParams, list = null) {
+    const { sum, sumType } = this.props
+  
+    // if(!sum) return list ? list : this.props.widgetProps.data
+    
+    const { rows, cols, metrics } = dataParams
+    const rowGroup = rows.items.map((item) => `${item.name}_rows`)
+    const colGroup = cols.items.reduce((col, item) => {
+      const repeatGroup = col.filter((item) => item === `${item.name}_cols`)
+      const colItem = repeatGroup.length ? repeatGroup.length : ''
+      col = [...col, `${item.name}_cols${colItem}`]
+      return col
+    }, [])
+    const metricsItems = metrics.items[0]
+    const metricsName = `${metricsItems.agg}(${
+      metricsItems.name.split('@')[0]
+    })`
+    const setOriginJsonByKey = (list) => {
+      const concatRowCol = [...colGroup, ...rowGroup, metricsName]
+      const wideList = list.reduce((pre, cur) => {
+        cur = concatRowCol.reduce((obj, key) => {
+          obj[key] = cur[replaceRowColPrx(key)]
+          return obj
+        }, {})
+        return (pre = [...pre, cur])
+      }, [])
+      return wideList
+    }
+    const data = list ? list : this.props.widgetProps.data
+    const wideTableList = setOriginJsonByKey(data)
+    const options = {
+      metrics: [metricsName],
+      rowGroup,
+      colGroup,
+      wideTableList
+    }
+    const {
+      widgetProps: { transformedWideTableList }
+    } = tree.getCompluteJson(options)
+    const resultList = this.makeOriginJson(
+      transformedWideTableList,
+      rowGroup,
+      colGroup,
+      [metricsName],
+      sumType
+    )
+    return resultList
+  }
   private forceSetWidgetProps = () => {
     const { dataParams, styleParams, pagination } = this.state
     this.setWidgetProps(dataParams, styleParams, {
@@ -1070,14 +1120,28 @@ export class OperatingPanel extends React.Component<
     })
   }
 
-  private makeOriginJson = (data, rowArray, colArray, tagGroup) => {
+  private makeOriginJson = (data, rowArray, colArray, tagGroup, sumType) => {
     const rowOrder = [...colArray, ...rowArray, ...tagGroup]
     return data.reduce((pre, cur) => {
       const newObj = {}
       rowOrder.forEach((key) => {
         newObj[key] = cur[key]
       })
+      const keys = Object.values(newObj)
+      const isNoramlNode = keys.every((k: string)=>!['总和', '合计'].includes(k))
+      const isSumNode = keys.some((k: string)=> k== '总和')
+      const isSubSumNode = keys.some((k: string)=> k== '合计')
       return pre.concat(newObj)
+      // if(isNoramlNode){
+      //   return pre.concat(newObj)
+      // } else {
+      //   if(sumType.includes('sum') && isSumNode || sumType.includes('subSum') && isSubSumNode){
+      //     return pre.concat(newObj)
+      //   } else {
+      //     return pre
+      //   }
+      // }
+      
     }, [])
   }
   private setWidgetProps = (
@@ -1159,7 +1223,6 @@ export class OperatingPanel extends React.Component<
           }))
       )
     }
-    console.log(groups, 'groups')
     if (size) {
       aggregators = aggregators.concat(
         size.items.map((l) => ({
@@ -1239,7 +1302,6 @@ export class OperatingPanel extends React.Component<
     const mergedParams = this.getChartDataConfig(selectedCharts)
     const mergedDataParams = mergedParams.dataParams
     const mergedStyleParams = mergedParams.styleParams
-
     let noAggregators = false
     if (styleParams.table) {
       // @FIXME pagination in table style config
@@ -1272,7 +1334,9 @@ export class OperatingPanel extends React.Component<
       nativeQuery: noAggregators,
       limit: options?.limit || this.props.limit,
       cache: false,
+      sum: false,
       expired: 0,
+      sumType: [],
       flush: false
     }
 
@@ -1281,64 +1345,23 @@ export class OperatingPanel extends React.Component<
         requestParams.orders = requestParams.orders.concat(options.orders)
       }
     }
-
     const requestParamString = JSON.stringify(requestParams)
     const needRequest =
       (groups.length > 0 || aggregators.length > 0) &&
       selectedViewId &&
-      requestParamString !== this.lastRequestParamString &&
+      (requestParamString !== this.lastRequestParamString ||
+        (requestParamString == this.lastRequestParamString &&
+          !dataParams.rows.items.length)) &&
       workbenchQueryMode === WorkbenchQueryMode.Immediately
-
-    console.log(mergedDataParams, this.props.widgetProps, 'mergedDataParams')
-    const rowGroup = rows.items.map((item) => `${item.name}_rows`)
-    const colGroup = cols.items.reduce((group, cur) => {
-      const exitGroup = group.filter((item) => item === `${cur.name}_cols`)
-      if (exitGroup.length) {
-        group = [...group, `${cur.name}_cols${exitGroup.length}`]
-      } else {
-        group = [...group, `${cur.name}_cols`]
-      }
-      return group
-    }, [])
+    console.log(mergedParams,dataParams,this.props, 'mergedParams....')
     if (needRequest) {
       this.lastRequestParamString = requestParamString
       onLoadData(
         selectedViewId,
         requestParams,
         (result) => {
-          const tag = result.columns.filter((item) => {
-            return item.type == 'DECIMAL'
-          })[0]
-          const tagGroup = [tag.name]
-          const setOriginJsonByKey = (list) => {
-            const concatRowCol = [...colGroup, ...rowGroup, ...tagGroup]
-            const wideList = list.reduce((pre, cur) => {
-              cur = concatRowCol.reduce((obj, key) => {
-                obj[key] = cur[key.replace(/\_(?<=)\d*(rows|cols)\d*/g, '')]
-                return obj
-              }, {})
-              return (pre = [...pre, cur])
-            }, [])
-            return wideList
-          }
 
-          const wideTableList = result.resultList
-          const options = {
-            tagGroup,
-            rowGroup,
-            colGroup,
-            wideTableList: setOriginJsonByKey(wideTableList)
-          }
-          const {
-            widgetProps: { transformedWideTableList }
-          } = tree.getCompluteJson(options)
-          result.resultList = this.makeOriginJson(
-            transformedWideTableList,
-            rowGroup,
-            colGroup,
-            tagGroup
-          )
-
+          result.resultList = this.setOriginOption(dataParams, result.resultList)
           let { resultList: data, pageNo, pageSize, totalCount } = result
           updatedPagination = !updatedPagination.withPaging
             ? updatedPagination
@@ -1501,7 +1524,6 @@ export class OperatingPanel extends React.Component<
   private chartSelect = (chart: IChartInfo) => {
     const { mode, dataParams } = this.state
     const { cols, rows, metrics } = dataParams
-    console.log(cols, rows, '设置的值')
     if (mode === 'pivot') {
       if (
         !(metrics.items.length === 1 && metrics.items[0].chart.id === chart.id)
@@ -1946,13 +1968,17 @@ export class OperatingPanel extends React.Component<
       limit,
       cache,
       autoLoadData,
+      sum,
       expired,
+      sumType,
       workbenchQueryMode,
       multiDrag,
       computed,
       onCacheChange,
       onChangeAutoLoadData,
+      onChangeSum,
       onExpiredChange,
+      onSumTypeChange,
       onLoadColumnDistinctValue,
       onLoadViews,
       onLoadViewDetail,
@@ -2383,6 +2409,49 @@ export class OperatingPanel extends React.Component<
                     </RadioGroup>
                   </Col>
                 </Row>
+              </div>
+            </div>
+            <div className={styles.paneBlock}>
+              <h4>开启总和</h4>
+              <div className={styles.blockBody}>
+                <Row
+                  gutter={8}
+                  type="flex"
+                  align="middle"
+                  className={styles.blockRow}
+                >
+                  <Col span={24}>
+                    <RadioGroup
+                      size="small"
+                      value={sum}
+                      onChange={onChangeSum}
+                    >
+                      <RadioButton value={false}>关闭</RadioButton>
+                      <RadioButton value={true}>开启</RadioButton>
+                    </RadioGroup>
+                  </Col>
+                </Row>
+              </div>
+              
+            </div>
+            <div className={styles.paneBlock}>
+              <h4>总和类别</h4>
+              <div className={styles.blockBody}>
+              <Checkbox.Group  style={{ width: '100%' }} value={ sumType } onChange={onSumTypeChange}>
+                <Row
+                  gutter={8}
+                  type="flex"
+                  align="middle"
+                  className={styles.blockRow}
+                >
+                  <Col span={10}>
+                    <Checkbox value={'sum'}  disabled={!sum} >总和</Checkbox>
+                  </Col>
+                  <Col span={10}>
+                    <Checkbox value={'subSum'}  disabled={!sum}>小计</Checkbox>
+                  </Col>
+                </Row>
+                </Checkbox.Group>
               </div>
             </div>
           </div>

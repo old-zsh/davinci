@@ -84,6 +84,7 @@ const widgetReducer = (
         break
       case ActionTypes.LOAD_WIDGET_DETAIL_SUCCESS:
         draft.loading = false
+        console.log(action.payload.detail, 'widgetView')
         draft.currentWidget = action.payload.detail
         break
       case ActionTypes.LOAD_WIDGET_DETAIL_FAILURE:

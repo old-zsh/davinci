@@ -53,7 +53,8 @@ import { IReference } from './Reference/types'
 import { IWorkbenchSettings, WorkbenchQueryMode } from './types'
 import { IWidgetFormed, IWidgetRaw } from '../../types'
 import { ControlQueryMode } from 'app/components/Control/constants'
-
+import { isSumNodeEndReg, replaceRowColPrx } from '../Pivot/util'
+import tree from '../Pivot/tree'
 const styles = require('./Workbench.less')
 
 interface IWorkbenchProps {
@@ -96,6 +97,8 @@ interface IWorkbenchStates {
   references: IReference[]
   computed: any[]
   autoLoadData: boolean
+  sum: boolean
+  sumType: string[]
   controlQueryMode: ControlQueryMode
   limit: number
   cache: boolean
@@ -133,9 +136,11 @@ export class Workbench extends React.Component<
       originalComputed: [],
       cache: false,
       autoLoadData: true,
+      sum: true,
       controlQueryMode: ControlQueryMode.Immediately,
       limit: null,
       expired: DEFAULT_CACHE_EXPIRED,
+      sumType: [],
       splitSize,
       originalWidgetProps: null,
       widgetProps: {
@@ -169,6 +174,7 @@ export class Workbench extends React.Component<
   }
 
   public componentWillMount() {
+    debugger
     const { match, onLoadWidgetDetail } = this.props
     const { widgetId } = match.params
     this.loadViews(() => {
@@ -183,6 +189,7 @@ export class Workbench extends React.Component<
   }
 
   public componentWillReceiveProps(nextProps: IWorkbenchProps) {
+    debugger
     const { currentWidget } = nextProps
     if (currentWidget && currentWidget !== this.props.currentWidget) {
       const { id, name, description, viewId, config } = currentWidget
@@ -192,12 +199,14 @@ export class Workbench extends React.Component<
         limit,
         cache,
         expired,
+        sumType,
+        sum,
         computed,
         autoLoadData,
+     
         queryMode,
         ...rest
       } = config
-      // console.log({ ...rest }, '...rest')
       this.setState({
         id,
         name,
@@ -206,9 +215,11 @@ export class Workbench extends React.Component<
         references,
         cache,
         autoLoadData,
+        sum,
         controlQueryMode: queryMode,
         limit,
         expired,
+        sumType,
         selectedViewId: viewId,
         originalWidgetProps: { ...rest },
         widgetProps: { ...rest },
@@ -310,6 +321,7 @@ export class Workbench extends React.Component<
       references,
       cache,
       autoLoadData,
+      sum,
       limit,
       expired,
       widgetProps,
@@ -343,7 +355,9 @@ export class Workbench extends React.Component<
               limit,
               cache,
               autoLoadData,
+              sum,
               expired,
+              sumType,
               data: []
             }),
             publish: true
@@ -377,7 +391,9 @@ export class Workbench extends React.Component<
               limit,
               cache,
               autoLoadData,
+              sum,
               expired,
+              sumType,
               data: []
             }),
             publish: true
@@ -451,8 +467,8 @@ export class Workbench extends React.Component<
     })
   }
 
+ 
   private setWidgetProps = (widgetProps: IWidgetProps) => {
-    debugger
     const { cols, rows } = widgetProps
     const data = [...(widgetProps.data || this.state.widgetProps.data)]
     const customOrders = cols
@@ -485,10 +501,12 @@ export class Workbench extends React.Component<
       limit,
       cache,
       expired,
+      sumType,
       widgetProps,
       computed,
       originalComputed,
-      autoLoadData
+      autoLoadData,
+      sum
     } = this.state
     if (!name.trim()) {
       message.error('Widget名称不能为空')
@@ -516,7 +534,9 @@ export class Workbench extends React.Component<
         limit,
         cache,
         expired,
+        sumType,
         autoLoadData,
+        sum,
         data: []
       }),
       publish: true
@@ -603,6 +623,19 @@ export class Workbench extends React.Component<
       autoLoadData: e.target.value
     })
   }
+  private changeSum = (e) => {
+    this.setState({
+      sum: e.target.value,
+    })
+    if(!e.target.value){
+      this.sumTypeChange([])
+    }
+  }
+  private sumTypeChange = (value) => {
+    this.setState({
+      sumType: value
+    })
+  }
 
   private openSettingForm = () => {
     this.setState({
@@ -632,7 +665,78 @@ export class Workbench extends React.Component<
     })
   }
 
+  public setOriginOption(dataParams, list = null) {
+    const { sum, sumType } = this.state
+    if(!sum) return list ? list : list
+    
+    const { rows, cols, metrics } = dataParams
+    const rowGroup = rows.map((item) => `${item.name}_rows`)
+    const colGroup = cols.reduce((col, item) => {
+      const repeatGroup = col.filter((item) => item === `${item.name}_cols`)
+      const colItem = repeatGroup.length ? repeatGroup.length : ''
+      col = [...col, `${item.name}_cols${colItem}`]
+      return col
+    }, [])
+    const metricsItems = metrics[0]
+    const metricsName = `${metricsItems.agg}(${
+      metricsItems.name.split('@')[0]
+    })`
+    const setOriginJsonByKey = (list) => {
+      const concatRowCol = [...colGroup, ...rowGroup, metricsName]
+      const wideList = list.reduce((pre, cur) => {
+        cur = concatRowCol.reduce((obj, key) => {
+          obj[key] = cur[replaceRowColPrx(key)]
+          return obj
+        }, {})
+        return (pre = [...pre, cur])
+      }, [])
+      return wideList
+    }
+    const data = list ? list : list
+    const wideTableList = setOriginJsonByKey(data)
+    const options = {
+      metrics: [metricsName],
+      rowGroup,
+      colGroup,
+      wideTableList
+    }
+    const {
+      widgetProps: { transformedWideTableList }
+    } = tree.getCompluteJson(options)
+    const resultList = this.makeOriginJson(
+      transformedWideTableList,
+      rowGroup,
+      colGroup,
+      [metricsName],
+      sumType
+    )
+    return resultList
+  }
+  private makeOriginJson = (data, rowArray, colArray, tagGroup, sumType) => {
+    const rowOrder = [...colArray, ...rowArray, ...tagGroup]
+    return data.reduce((pre, cur) => {
+      const newObj = {}
+      rowOrder.forEach((key) => {
+        newObj[key] = cur[key]
+      })
+      const keys = Object.values(newObj)
+      const isNoramlNode = keys.every((k: string)=>!['总和', '合计'].includes(k))
+      const isSumNode = keys.some((k: string)=> k== '总和')
+      const isSubSumNode = keys.some((k: string)=> k== '合计')
+      if(isNoramlNode){
+        return pre.concat(newObj)
+      } else {
+        if(sumType.includes('sum') && isSumNode || sumType.includes('subSum') && isSubSumNode){
+          return pre.concat(newObj)
+        } else {
+          return pre
+        }
+      }
+      
+    }, [])
+  }
   public render() {
+    debugger
     const {
       views,
       formedViews,
@@ -652,7 +756,9 @@ export class Workbench extends React.Component<
       limit,
       cache,
       autoLoadData,
+      sum,
       expired,
+      sumType,
       computed,
       splitSize,
       originalWidgetProps,
@@ -663,7 +769,7 @@ export class Workbench extends React.Component<
     } = this.state
     const { queryMode: workbenchQueryMode, multiDrag } = settings
 
-    const { selectedChart, cols, rows, metrics, data } = widgetProps
+    let { selectedChart, cols, rows, metrics, data } = widgetProps
     const hasDataConfig = !!(cols.length || rows.length || metrics.length)
     const maskProps: IDashboardItemMaskProps = {
       loading: dataLoading,
@@ -710,6 +816,8 @@ export class Workbench extends React.Component<
                 limit={limit}
                 cache={cache}
                 autoLoadData={autoLoadData}
+                sum={sum}
+                sumType={sumType}
                 expired={expired}
                 workbenchQueryMode={workbenchQueryMode}
                 multiDrag={multiDrag}
@@ -717,11 +825,13 @@ export class Workbench extends React.Component<
                 widgetProps = {widgetProps}
                 onViewSelect={this.viewSelect}
                 onChangeAutoLoadData={this.changeAutoLoadData}
+                onChangeSum={this.changeSum}
                 onSetControls={this.setControls}
                 onSetReferences={this.setReferences}
                 onLimitChange={this.limitChange}
                 onCacheChange={this.cacheChange}
                 onExpiredChange={this.expiredChange}
+                onSumTypeChange={this.sumTypeChange}
                 onSetWidgetProps={this.setWidgetProps}
                 onSetComputed={this.setComputed}
                 onDeleteComputed={this.deleteComputed}
@@ -737,6 +847,8 @@ export class Workbench extends React.Component<
                     loading={<DashboardItemMask.Loading {...maskProps} />}
                     empty={<DashboardItemMask.Empty {...maskProps} />}
                     editing={true}
+                    sum={sum}
+                    sumType={sumType}
                     onPaginationChange={this.paginationChange}
                     onChartStylesChange={this.chartStylesChange}
                   />

@@ -18,7 +18,7 @@ class MultiwayTree {
   public widgetProps = {
     root: null,
     wideTableList: [],
-    tagGroup: [],
+    metrics: [],
     colArray: [],
     rowArray: [],
     transformedWideTableList: [],
@@ -187,7 +187,7 @@ class MultiwayTree {
     originListItem = { ...(this.labelText.rootLevel), ...originListItem}
     const levelKeyGroup = Object.keys(originListItem)
     levelKeyGroup.forEach((levelKey, index) => {
-      const isMetrics = this.widgetProps.tagGroup.includes(levelKey)
+      const isMetrics = this.widgetProps.metrics.includes(levelKey)
       const parentKey = `${levelKeyGroup[index - 1]}_${listIdx}`
       const initKey = `${levelKey}_${listIdx}`
       this.pointOption = {
@@ -543,7 +543,7 @@ class MultiwayTree {
     const iteration = (currentNode) => {
       queue.forEach((item) => {
         currentNode = queue.shift()
-        if (this.widgetProps.tagGroup.includes(currentNode.value)) {
+        if (this.widgetProps.metrics.includes(currentNode.value)) {
           this.widgetProps.treeRootTagNodeList.push(currentNode)
         }
         queue.push(...currentNode.children)
@@ -657,13 +657,13 @@ class MultiwayTree {
     })
   }
   public initWidgetProps(options) {
-    const { tagGroup, rowGroup, colGroup, wideTableList } = options
+    const { metrics, rowGroup, colGroup, wideTableList } = options
     this.widgetProps.rowColConcat = [
       ...colGroup,
       ...rowGroup,
       ...this.labelText.rootKey
     ]
-    this.widgetProps.tagGroup = tagGroup
+    this.widgetProps.metrics = metrics
     this.widgetProps.rowArray = colGroup
     this.widgetProps.colArray = rowGroup
     this.widgetProps.wideTableList = wideTableList
@@ -676,13 +676,11 @@ class MultiwayTree {
   public getCompluteJson(options) {
     tree.initWidgetProps(options)
     tree.setMultiwayTree()
-    console.log(tree, 'tree设置的值  1')
     tree.addTotalNodeToTree()
-    console.log(tree, 'tree设置的值  2')
     tree.setNodeParentName()
-    console.log(this.widgetProps.treeRootTagNodeList, 'this.widgetProps.treeRootTagNodeList')
     tree.calcSumNodeDFS()
     tree.getJson()
+    debugger
     return tree
   }
 }

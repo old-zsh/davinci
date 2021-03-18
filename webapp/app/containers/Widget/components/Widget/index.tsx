@@ -103,6 +103,17 @@ export interface IChartStyles {
   doubleYAxis?: IDoubleYAxisConfig
 }
 
+export interface IChartConfig {
+  controls: IControl[]
+  limit: number
+  cache: boolean
+  expired: number
+  autoLoadData: boolean
+  sum: boolean
+  sumType: string[]
+  queryMode: ControlQueryMode
+}
+
 export interface IChartRule {
   dimension: number | [number, number]
   metric: number | [number, number]
@@ -135,6 +146,7 @@ interface IWidgetConfigBase {
   secondaryMetrics?: IWidgetSecondaryMetric[]
   filters: IWidgetFilter[]
   chartStyles: IChartStyles
+  chartConfig: IChartConfig
   selectedChart: number
   color?: IDataParamProperty
   label?: IDataParamProperty
@@ -175,6 +187,8 @@ export interface IWidgetConfig extends IWidgetConfigBase {
   cache: boolean
   expired: number
   autoLoadData: boolean
+  sum: boolean
+  sumType: string[]
   queryMode: ControlQueryMode
 }
 
@@ -234,9 +248,9 @@ export class Widget extends React.Component<
   }
 
   public render () {
+    debugger
     const { loading, empty, ...rest } = this.props
     const { width, height } = this.state
-
     const widgetProps = { width, height, ...rest }
 
     let widgetContent: JSX.Element
