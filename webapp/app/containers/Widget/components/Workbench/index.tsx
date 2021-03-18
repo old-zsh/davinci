@@ -189,8 +189,9 @@ export class Workbench extends React.Component<
   }
 
   public componentWillReceiveProps(nextProps: IWorkbenchProps) {
-    debugger
+  
     const { currentWidget } = nextProps
+    console.log(currentWidget, 'currentWidget')
     if (currentWidget && currentWidget !== this.props.currentWidget) {
       const { id, name, description, viewId, config } = currentWidget
       const {

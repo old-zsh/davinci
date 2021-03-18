@@ -133,7 +133,7 @@ export class Pivot extends React.PureComponent<IPivotProps, IPivotStates> {
   public columnFooter: HTMLElement = null
 
   public componentWillMount() {
-    debugger
+    console.log(this.props, 'this.props')
     this.getRenderData(this.props)
   }
 
@@ -257,7 +257,7 @@ export class Pivot extends React.PureComponent<IPivotProps, IPivotStates> {
   }
   private getSumRowAndColKeys(keys, props) {
     const { sumType } = props
-    keys = keys.reduce((group, keys) => {
+    return keys.reduce((group, keys) => {
       let isNoramlNode = keys.every(
         (k: string) => !['总和', '合计'].includes(k)
       )
@@ -299,22 +299,22 @@ export class Pivot extends React.PureComponent<IPivotProps, IPivotStates> {
       const removeRowColPrx = (key) => {
         return key.replace(/\_(?<=)\d*(rows|cols)\d*/g, '')
       }
-      data.reduce((data, item) => {
-        item = groups.reduce((obj, key) => {
-          obj[key] = item[removeRowColPrx(key)]
-          return obj
-        }, {})
-        return item
-      }, [])
+      // data.reduce((data, item) => {
+      //   item = groups.reduce((obj, key) => {
+      //     obj[key] = item[removeRowColPrx(key)]
+      //     return obj
+      //   }, {})
+      //   return item
+      // }, [])
+      console.log(data, 'data的值')
       data.forEach((record) => {
         this.getRowKeyAndColKey(props, record, !!dimetionAxis)
       })
-      debugger
-      this.getSumRowAndColKeys(this.rowKeys, props)
-      this.getSumRowAndColKeys(this.colKeys, props)
-      if (this.rowKeys.length > 1) {
-        this.getSortSumNode(rows)
-      }
+    //   this.rowKeys = this.getSumRowAndColKeys(this.rowKeys, props)
+    //   this.colKeys = this.getSumRowAndColKeys(this.colKeys, props)
+    //   if (this.rowKeys.length > 1) {
+    //     this.getSortSumNode(rows)
+    //   }
     }
 
     if (dimetionAxis) {
