@@ -1127,11 +1127,11 @@ export class OperatingPanel extends React.Component<
       rowOrder.forEach((key) => {
         newObj[key] = cur[key]
       })
-      const keys = Object.values(newObj)
-      const isNoramlNode = keys.every((k: string)=>!['总和', '合计'].includes(k))
-      const isSumNode = keys.some((k: string)=> k== '总和')
-      const isSubSumNode = keys.some((k: string)=> k== '合计')
       return pre.concat(newObj)
+      // const keys = Object.values(newObj)
+      // const isNoramlNode = keys.every((k: string)=>!['总和', '合计'].includes(k))
+      // const isSumNode = keys.some((k: string)=> k== '总和')
+      // const isSubSumNode = keys.some((k: string)=> k== '合计')
       // if(isNoramlNode){
       //   return pre.concat(newObj)
       // } else {
@@ -2411,7 +2411,7 @@ export class OperatingPanel extends React.Component<
                 </Row>
               </div>
             </div>
-            <div className={styles.paneBlock}>
+            {/* <div className={styles.paneBlock}>
               <h4>开启总和</h4>
               <div className={styles.blockBody}>
                 <Row
@@ -2433,8 +2433,8 @@ export class OperatingPanel extends React.Component<
                 </Row>
               </div>
               
-            </div>
-            <div className={styles.paneBlock}>
+            </div> */}
+            {/* <div className={styles.paneBlock}>
               <h4>总和类别</h4>
               <div className={styles.blockBody}>
               <Checkbox.Group  style={{ width: '100%' }} value={ sumType } onChange={onSumTypeChange}>
@@ -2453,7 +2453,7 @@ export class OperatingPanel extends React.Component<
                 </Row>
                 </Checkbox.Group>
               </div>
-            </div>
+            </div> */}
           </div>
         )
         break

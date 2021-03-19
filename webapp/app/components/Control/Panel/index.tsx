@@ -136,6 +136,7 @@ class ControlPanel extends PureComponent<
     const { flatTree, defaultValues } = state
     const initialFormValues = initiated ? formValues : defaultValues
     onChange(initialFormValues)
+    console.log(flatTree, '设置的值 flatTree')
     Object.values(flatTree).forEach((control) => {
       if (SHOULD_LOAD_OPTIONS[control.type]) {
         this.loadOptions(control, flatTree, initialFormValues)
@@ -162,7 +163,7 @@ class ControlPanel extends PureComponent<
       customOptions,
       relatedViews
     } = renderControl
-
+    console.log(optionType, ControlOptionTypes.Custom, '设置的值')
     if (optionType === ControlOptionTypes.Custom) {
       onGetOptions(
         key,
@@ -173,7 +174,7 @@ class ControlPanel extends PureComponent<
     } else {
       const parents = getParents(parent, flatTree)
       const requestParams = {}
-
+      console.log(relatedViews, '设置的值 relatedViews')
       // get cascading conditions
       Object.entries(relatedViews).forEach(([viewId, relatedView]) => {
         let filters = []
@@ -291,7 +292,7 @@ class ControlPanel extends PureComponent<
             break
         }
       })
-
+      console.log(Object.keys(requestParams), '设置的值 Object.keys(requestParams)')
       if (Object.keys(requestParams).length) {
         onGetOptions(
           key,

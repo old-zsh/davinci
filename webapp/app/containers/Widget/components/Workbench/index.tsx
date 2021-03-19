@@ -174,7 +174,6 @@ export class Workbench extends React.Component<
   }
 
   public componentWillMount() {
-    debugger
     const { match, onLoadWidgetDetail } = this.props
     const { widgetId } = match.params
     this.loadViews(() => {
@@ -189,10 +188,10 @@ export class Workbench extends React.Component<
   }
 
   public componentWillReceiveProps(nextProps: IWorkbenchProps) {
-  
     const { currentWidget } = nextProps
-    console.log(currentWidget, 'currentWidget')
+   
     if (currentWidget && currentWidget !== this.props.currentWidget) {
+      console.log(currentWidget, 'currentWidget')
       const { id, name, description, viewId, config } = currentWidget
       const {
         controls,
@@ -208,6 +207,7 @@ export class Workbench extends React.Component<
         queryMode,
         ...rest
       } = config
+
       this.setState({
         id,
         name,
@@ -216,10 +216,10 @@ export class Workbench extends React.Component<
         references,
         cache,
         autoLoadData,
-        sum,
         controlQueryMode: queryMode,
         limit,
         expired,
+        sum,
         sumType,
         selectedViewId: viewId,
         originalWidgetProps: { ...rest },
@@ -470,6 +470,7 @@ export class Workbench extends React.Component<
 
  
   private setWidgetProps = (widgetProps: IWidgetProps) => {
+    debugger
     const { cols, rows } = widgetProps
     const data = [...(widgetProps.data || this.state.widgetProps.data)]
     const customOrders = cols
@@ -737,7 +738,6 @@ export class Workbench extends React.Component<
     }, [])
   }
   public render() {
-    debugger
     const {
       views,
       formedViews,

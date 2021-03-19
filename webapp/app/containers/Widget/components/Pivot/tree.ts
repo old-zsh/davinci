@@ -680,7 +680,6 @@ class MultiwayTree {
     tree.setNodeParentName()
     tree.calcSumNodeDFS()
     tree.getJson()
-    debugger
     return tree
   }
 }

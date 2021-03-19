@@ -133,7 +133,6 @@ export class Pivot extends React.PureComponent<IPivotProps, IPivotStates> {
   public columnFooter: HTMLElement = null
 
   public componentWillMount() {
-    console.log(this.props, 'this.props')
     this.getRenderData(this.props)
   }
 
@@ -287,6 +286,8 @@ export class Pivot extends React.PureComponent<IPivotProps, IPivotStates> {
       data,
       xAxis,
       dimetionAxis,
+      sum,
+      sumType
     } = props
     this.rowHeaderWidths = rows.map((r) => getPivotContentTextWidth(r, 'bold'))
     if (!cols.length && !rows.length) {
@@ -306,15 +307,16 @@ export class Pivot extends React.PureComponent<IPivotProps, IPivotStates> {
       //   }, {})
       //   return item
       // }, [])
-      console.log(data, 'data的值')
+      console.log(data, 'data值')
       data.forEach((record) => {
         this.getRowKeyAndColKey(props, record, !!dimetionAxis)
       })
-    //   this.rowKeys = this.getSumRowAndColKeys(this.rowKeys, props)
-    //   this.colKeys = this.getSumRowAndColKeys(this.colKeys, props)
-    //   if (this.rowKeys.length > 1) {
-    //     this.getSortSumNode(rows)
-    //   }
+
+      // this.rowKeys = this.getSumRowAndColKeys(this.rowKeys, props)
+      // this.colKeys = this.getSumRowAndColKeys(this.colKeys, props)
+      // if (this.rowKeys.length > 1) {
+      //   this.getSortSumNode(rows)
+      // }
     }
 
     if (dimetionAxis) {
