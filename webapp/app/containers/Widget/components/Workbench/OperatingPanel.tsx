@@ -1065,23 +1065,24 @@ export class OperatingPanel extends React.Component<
   }
   public setOriginOption(dataParams, list = null) {
     const { sum, sumType } = this.props
-  
-    // if(!sum) return list ? list : this.props.widgetProps.data
-    
     const { rows, cols, metrics } = dataParams
-    const rowGroup = rows.items.map((item) => `${item.name}_rows`)
-    const colGroup = cols.items.reduce((col, item) => {
+    const rowGroup = rows && rows.items.map((item) => `${item.name}_rows`)
+    const colGroup = cols && cols.items.reduce((col, item) => {
       const repeatGroup = col.filter((item) => item === `${item.name}_cols`)
       const colItem = repeatGroup.length ? repeatGroup.length : ''
       col = [...col, `${item.name}_cols${colItem}`]
       return col
     }, [])
     const metricsItems = metrics.items[0]
-    const metricsName = `${metricsItems.agg}(${
-      metricsItems.name.split('@')[0]
-    })`
+    let metricsName
+    if(metricsItems){
+      metricsName = `${metricsItems.agg}(${
+        metricsItems.name.split('@')[0]
+      })`
+    }
+
     const setOriginJsonByKey = (list) => {
-      const concatRowCol = [...colGroup, ...rowGroup, metricsName]
+      const concatRowCol = metricsName ? [...colGroup, ...rowGroup, metricsName]: [...colGroup, ...rowGroup]
       const wideList = list.reduce((pre, cur) => {
         cur = concatRowCol.reduce((obj, key) => {
           obj[key] = cur[replaceRowColPrx(key)]
@@ -1094,7 +1095,7 @@ export class OperatingPanel extends React.Component<
     const data = list ? list : this.props.widgetProps.data
     const wideTableList = setOriginJsonByKey(data)
     const options = {
-      metrics: [metricsName],
+      metrics: metricsName ? [metricsName] : [],
       rowGroup,
       colGroup,
       wideTableList
@@ -1353,15 +1354,16 @@ export class OperatingPanel extends React.Component<
         (requestParamString == this.lastRequestParamString &&
           !dataParams.rows.items.length)) &&
       workbenchQueryMode === WorkbenchQueryMode.Immediately
-    console.log(mergedParams,dataParams,this.props, 'mergedParams....')
+    console.log(mergedParams,dataParams,this.props, 'mergedParams')
     if (needRequest) {
       this.lastRequestParamString = requestParamString
       onLoadData(
         selectedViewId,
         requestParams,
         (result) => {
-
-          result.resultList = this.setOriginOption(dataParams, result.resultList)
+          // if(dataParams.metrics.items.length == 1){
+          //   result.resultList = this.setOriginOption(dataParams, result.resultList)
+          // }
           let { resultList: data, pageNo, pageSize, totalCount } = result
           updatedPagination = !updatedPagination.withPaging
             ? updatedPagination
@@ -2425,6 +2427,7 @@ export class OperatingPanel extends React.Component<
                       size="small"
                       value={sum}
                       onChange={onChangeSum}
+                      disabled = { this.props.widgetProps.mode === "chart" || this.props.widgetProps.mode === "pivot" && this.props.widgetProps.metrics.length !==1}
                     >
                       <RadioButton value={false}>关闭</RadioButton>
                       <RadioButton value={true}>开启</RadioButton>
@@ -2435,9 +2438,9 @@ export class OperatingPanel extends React.Component<
               
             </div>
             <div className={styles.paneBlock}>
-              <h4>总和类别</h4>
+              <h4>总和类别 {sum}</h4>
               <div className={styles.blockBody}>
-              <Checkbox.Group  style={{ width: '100%' }} value={ sumType } onChange={onSumTypeChange}>
+              <Checkbox.Group  style={{ width: '100%' }} value={ sumType }  disabled = { this.props.widgetProps.mode === "chart" || this.props.widgetProps.mode === "pivot" && this.props.widgetProps.metrics.length !==1} onChange={onSumTypeChange}>
                 <Row
                   gutter={8}
                   type="flex"

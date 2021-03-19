@@ -106,7 +106,6 @@ export class ScrollablePivot extends React.Component<IPivotProps, {}> {
   }
 
   public render () {
-    console.log(this.props, 'this.props....')
     return (
       <Pivot {...this.props} ref={(f) => this.pivot = f} />
     )

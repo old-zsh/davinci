@@ -204,7 +204,7 @@ class MultiwayTree {
         tree.getPointAttribute(treeNodeGroup)
       )
     })
-    return [...treeNodeGroup, targetNodeGroup]
+    return targetNodeGroup.length ? [...treeNodeGroup, targetNodeGroup] : [...treeNodeGroup]
   }
 
   public setMultiwayTree() {
@@ -676,6 +676,7 @@ class MultiwayTree {
   public getCompluteJson(options) {
     tree.initWidgetProps(options)
     tree.setMultiwayTree()
+    debugger
     tree.addTotalNodeToTree()
     tree.setNodeParentName()
     tree.calcSumNodeDFS()
