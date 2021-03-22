@@ -174,7 +174,6 @@ export class Workbench extends React.Component<
   }
 
   public componentWillMount() {
-    debugger
     const { match, onLoadWidgetDetail } = this.props
     const { widgetId } = match.params
     this.loadViews(() => {

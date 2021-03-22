@@ -676,7 +676,6 @@ class MultiwayTree {
   public getCompluteJson(options) {
     tree.initWidgetProps(options)
     tree.setMultiwayTree()
-    debugger
     tree.addTotalNodeToTree()
     tree.setNodeParentName()
     tree.calcSumNodeDFS()
