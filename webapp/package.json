@@ -81,7 +81,6 @@
     "intl": "1.2.5",
     "invariant": "2.2.4",
     "ip": "1.1.5",
-    "js-xlsx": "^0.8.22",
     "lodash": "4.17.19",
     "memoize-one": "^5.0.0",
     "minimist": "1.2.3",

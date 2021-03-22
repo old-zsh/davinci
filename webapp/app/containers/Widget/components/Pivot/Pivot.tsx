@@ -278,7 +278,7 @@ export class Pivot extends React.PureComponent<IPivotProps, IPivotStates> {
     }, [])
   }
 
-  private makeOriginJson = (data, rowArray, colArray, tagGroup, sumType) => {
+  private makeOriginJson = (data, rowArray, colArray, tagGroup) => {
     const rowOrder = [...colArray, ...rowArray, ...tagGroup]
     return data.reduce((pre, cur) => {
       const newObj = {}
@@ -286,20 +286,6 @@ export class Pivot extends React.PureComponent<IPivotProps, IPivotStates> {
         newObj[key] = cur[key]
       })
       return pre.concat(newObj)
-      // const keys = Object.values(newObj)
-      // const isNoramlNode = keys.every((k: string)=>!['总和', '合计'].includes(k))
-      // const isSumNode = keys.some((k: string)=> k== '总和')
-      // const isSubSumNode = keys.some((k: string)=> k== '合计')
-      // if(isNoramlNode){
-      //   return pre.concat(newObj)
-      // } else {
-      //   if(sumType.includes('sum') && isSumNode || sumType.includes('subSum') && isSubSumNode){
-      //     return pre.concat(newObj)
-      //   } else {
-      //     return pre
-      //   }
-      // }
-      
     }, [])
   }
 
@@ -346,7 +332,6 @@ export class Pivot extends React.PureComponent<IPivotProps, IPivotStates> {
       rowGroup,
       colGroup,
       [metricsName],
-      sumType
     )
     return resultList
   }
@@ -362,7 +347,9 @@ export class Pivot extends React.PureComponent<IPivotProps, IPivotStates> {
       xAxis,
       dimetionAxis
     } = props
-    console.log(props, 'props Pivot')
+   
+
+    // console.log(props, 'props Pivot')
     if(metrics.length == 1 && data.length){
       data = this.setOriginOption(props)
     }
@@ -388,7 +375,7 @@ export class Pivot extends React.PureComponent<IPivotProps, IPivotStates> {
       data.forEach((record) => {
         this.getRowKeyAndColKey(props, record, !!dimetionAxis)
       })
-
+      console.log(props.sum,props.sumType, 'sum和sumType的值')
       this.rowKeys = this.getSumRowAndColKeys(this.rowKeys, props)
       this.colKeys = this.getSumRowAndColKeys(this.colKeys, props)
       if (this.rowKeys.length > 1) {

@@ -53,8 +53,7 @@ import { IReference } from './Reference/types'
 import { IWorkbenchSettings, WorkbenchQueryMode } from './types'
 import { IWidgetFormed, IWidgetRaw } from '../../types'
 import { ControlQueryMode } from 'app/components/Control/constants'
-import { isSumNodeEndReg, replaceRowColPrx } from '../Pivot/util'
-import tree from '../Pivot/tree'
+
 const styles = require('./Workbench.less')
 
 interface IWorkbenchProps {
@@ -191,7 +190,7 @@ export class Workbench extends React.Component<
     const { currentWidget } = nextProps
    
     if (currentWidget && currentWidget !== this.props.currentWidget) {
-      console.log(currentWidget, 'currentWidget Workbench')
+      // console.log(currentWidget, 'currentWidget Workbench')
       const { id, name, description, viewId, config } = currentWidget
       const {
         controls,
@@ -623,6 +622,7 @@ export class Workbench extends React.Component<
       autoLoadData: e.target.value
     })
   }
+
   private changeSum = (e) => {
     this.setState({
       sum: e.target.value,
@@ -631,6 +631,7 @@ export class Workbench extends React.Component<
       this.sumTypeChange([])
     }
   }
+
   private sumTypeChange = (value) => {
     this.setState({
       sumType: value
@@ -663,77 +664,6 @@ export class Workbench extends React.Component<
     this.setState({
       settingFormVisible: false
     })
-  }
-
-  public setOriginOption(dataParams, list = null) {
-    const { sum, sumType } = this.state
-    if(!sum) return list ? list : list
-    
-    const { rows, cols, metrics } = dataParams
-    const rowGroup = rows.map((item) => `${item.name}_rows`)
-    const colGroup = cols.reduce((col, item) => {
-      const repeatGroup = col.filter((item) => item === `${item.name}_cols`)
-      const colItem = repeatGroup.length ? repeatGroup.length : ''
-      col = [...col, `${item.name}_cols${colItem}`]
-      return col
-    }, [])
-    const metricsItems = metrics[0]
-    const metricsName = `${metricsItems.agg}(${
-      metricsItems.name.split('@')[0]
-    })`
-    const setOriginJsonByKey = (list) => {
-      const concatRowCol = [...colGroup, ...rowGroup, metricsName]
-      const wideList = list.reduce((pre, cur) => {
-        cur = concatRowCol.reduce((obj, key) => {
-          obj[key] = cur[replaceRowColPrx(key)]
-          return obj
-        }, {})
-        return (pre = [...pre, cur])
-      }, [])
-      return wideList
-    }
-    const data = list ? list : list
-    const wideTableList = setOriginJsonByKey(data)
-    const options = {
-      metrics: [metricsName],
-      rowGroup,
-      colGroup,
-      wideTableList
-    }
-    const {
-      widgetProps: { transformedWideTableList }
-    } = tree.getCompluteJson(options)
-    const resultList = this.makeOriginJson(
-      transformedWideTableList,
-      rowGroup,
-      colGroup,
-      [metricsName],
-      sumType
-    )
-    return resultList
-  }
-  private makeOriginJson = (data, rowArray, colArray, tagGroup, sumType) => {
-    const rowOrder = [...colArray, ...rowArray, ...tagGroup]
-    return data.reduce((pre, cur) => {
-      const newObj = {}
-      rowOrder.forEach((key) => {
-        newObj[key] = cur[key]
-      })
-      const keys = Object.values(newObj)
-      const isNoramlNode = keys.every((k: string)=>!['总和', '合计'].includes(k))
-      const isSumNode = keys.some((k: string)=> k== '总和')
-      const isSubSumNode = keys.some((k: string)=> k== '合计')
-      if(isNoramlNode){
-        return pre.concat(newObj)
-      } else {
-        if(sumType.includes('sum') && isSumNode || sumType.includes('subSum') && isSubSumNode){
-          return pre.concat(newObj)
-        } else {
-          return pre
-        }
-      }
-      
-    }, [])
   }
   public render() {
     const {

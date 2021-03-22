@@ -4,14 +4,10 @@ import {
   isRowColLastLevel,
   getOriginKey,
   isColRowMermber,
-  isSumNodeStartReg,
   isSumLastNode,
   isQuotaSum,
   isSumNodeEnd,
-  isNodeIncludeArray,
-  isSumNodeEndReg,
-  isQdReg,
-  replaceRowColPrx
+  isNodeIncludeArray
 } from './util'
 class MultiwayTree {
   public treePointItem = []
@@ -26,7 +22,6 @@ class MultiwayTree {
     rowColConcat: []
   }
   public pointOption = {
-    
     treePointItem: [],
     isExistEqualParent: false,
     parentKey: '',
@@ -43,7 +38,7 @@ class MultiwayTree {
     originListItem: {}
   } as any
   public labelText = {
-    rootLevel: { name_level0_cols: 'root'},
+    rootLevel: { name_level0_cols: 'root' },
     rootKey: ['name_level0_cols'],
     sumConcat: ['总和', '合计'],
     sumText: '总和',
@@ -58,7 +53,7 @@ class MultiwayTree {
     let currentNode = queue.shift()
 
     while (!found && currentNode) {
-      found = !!callback(currentNode) 
+      found = !!callback(currentNode)
       if (!found) {
         queue.push(...currentNode.children)
         currentNode = queue.shift()
@@ -184,7 +179,7 @@ class MultiwayTree {
   public getLevelGroupAttribute(originListItem, listIdx) {
     const treeNodeGroup = []
     const targetNodeGroup = []
-    originListItem = { ...(this.labelText.rootLevel), ...originListItem}
+    originListItem = { ...this.labelText.rootLevel, ...originListItem }
     const levelKeyGroup = Object.keys(originListItem)
     levelKeyGroup.forEach((levelKey, index) => {
       const isMetrics = this.widgetProps.metrics.includes(levelKey)
@@ -204,7 +199,9 @@ class MultiwayTree {
         tree.getPointAttribute(treeNodeGroup)
       )
     })
-    return targetNodeGroup.length ? [...treeNodeGroup, targetNodeGroup] : [...treeNodeGroup]
+    return targetNodeGroup.length
+      ? [...treeNodeGroup, targetNodeGroup]
+      : [...treeNodeGroup]
   }
 
   public setMultiwayTree() {
@@ -227,7 +224,6 @@ class MultiwayTree {
     })
   }
 
-
   // 获取父节点首个不为sum
   public getFirstNotSum(node) {
     const { subSumText } = this.labelText
@@ -249,9 +245,7 @@ class MultiwayTree {
         const args = { backParent, parentNode }
         const getRoot = (args) => {
           if (
-            this.labelText.rootKey.includes(
-              getOriginKey(args.backParent.key)
-            )
+            this.labelText.rootKey.includes(getOriginKey(args.backParent.key))
           ) {
             return tree.getFirstNotSum(parentNode).children
           }
@@ -271,10 +265,8 @@ class MultiwayTree {
       currentNode &&
       getOriginKey(currentNode.key) !== this.widgetProps.colArray[0]
     ) {
-      if (currentNode) {
-        queue.push(...currentNode.children)
-        currentNode = queue.shift()
-      }
+      queue.push(...currentNode.children)
+      currentNode = queue.shift()
     }
     return [...queue, currentNode]
   }
@@ -410,7 +402,8 @@ class MultiwayTree {
         isSumLastNode(tree.getColArrayFirstParent(parentNode).key)) ||
       (getOriginKey(parentNode.key) ===
         this.widgetProps.rowArray[this.widgetProps.rowArray.length - 1] &&
-        isLastSumNode && this.widgetProps.colArray.length)
+        isLastSumNode &&
+        this.widgetProps.colArray.length)
     const isSubSumText = isLastSumNode && !isQuotaSum(nodeValue)
     if (isRowSumText || isColSumText || isColStartSumText) {
       return sumText
@@ -439,7 +432,10 @@ class MultiwayTree {
       isLastSumNode
     } = copyParems
     let polymerizeGroup
-    const isRowColLastLevels = isRowColLastLevel(parentNode, this.widgetProps.rowArray)
+    const isRowColLastLevels = isRowColLastLevel(
+      parentNode,
+      this.widgetProps.rowArray
+    )
     if (isRowColLastLevels && this.widgetProps.colArray.length) {
       polymerizeGroup = tree.getMergePartBranch(parentNode)
     }
@@ -481,7 +477,12 @@ class MultiwayTree {
       }
       if (currentNode.length) {
         newNode = tree.copyPolymerizeNoramlChild(copyParems)
-        const copyNode = tree.copyIteration(deepCopy, currentNode[0], parentNode, true)
+        const copyNode = tree.copyIteration(
+          deepCopy,
+          currentNode[0],
+          parentNode,
+          true
+        )
         newNode.push(copyNode)
       } else {
         Object.keys(currentNode).forEach((key) => {
@@ -519,7 +520,10 @@ class MultiwayTree {
   }
 
   public addTotalNodeToTree() {
-    this.widgetProps.rowColConcat.splice(this.widgetProps.rowColConcat.length - 2, 1) // 注意
+    this.widgetProps.rowColConcat.splice(
+      this.widgetProps.rowColConcat.length - 2,
+      1
+    ) // 注意
     const queue = [this.widgetProps.root]
     let currentNode = queue.shift()
     while (
@@ -538,19 +542,15 @@ class MultiwayTree {
   }
   public setNodeParentName() {
     const queue = [this.widgetProps.root]
-    const currentNode = queue.shift()
+    let currentNode = queue.shift()
     queue.push(...currentNode.children)
-    const iteration = (currentNode) => {
-      queue.forEach((item) => {
-        currentNode = queue.shift()
-        if (this.widgetProps.metrics.includes(currentNode.value)) {
-          this.widgetProps.treeRootTagNodeList.push(currentNode)
-        }
-        queue.push(...currentNode.children)
-        iteration(currentNode)
-      })
+    while (queue.length) {
+      currentNode = queue.shift()
+      if (this.widgetProps.metrics.includes(currentNode.value)) {
+        this.widgetProps.treeRootTagNodeList.push(currentNode)
+      }
+      queue.push(...currentNode.children)
     }
-    iteration(currentNode)
   }
   // 筛选 非sum node并求和
   public getUnSumNodeReduceSum(children) {
@@ -645,7 +645,7 @@ class MultiwayTree {
         if (!item.parent) {
           return this.widgetProps.transformedWideTableList.push(obj)
         }
-        if(isQuotaSum(item.key)){
+        if (isQuotaSum(item.key)) {
           obj[getOriginKey(item.key)] = item.data
         } else {
           obj[getOriginKey(item.key)] = item.value
@@ -670,7 +670,6 @@ class MultiwayTree {
     this.widgetProps.root = null
     this.widgetProps.treeRootTagNodeList = []
     this.widgetProps.transformedWideTableList = []
-   
   }
 
   public getCompluteJson(options) {

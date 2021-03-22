@@ -1,10 +1,10 @@
 /*
  * @Author: your name
- * @Date: 2021-02-10 11:13:52
- * @LastEditTime: 2021-03-15 18:20:42
- * @LastEditors: Please set LastEditors
+ * @Date: 2021-03-22 10:29:35
+ * @LastEditTime: 2021-03-22 11:06:42
+ * @LastEditors: your name
  * @Description: In User Settings Edit
- * @FilePath: /davinci-fork/davinci/webapp/app/containers/Widget/components/Pivot/util.js
+ * @FilePath: /davinci-fork/davinci/webapp/app/containers/Widget/components/Pivot/util.ts
  */
 
 export function isRowColLastLevel(node, array) {
@@ -20,14 +20,6 @@ export function isColRowMermber(group, key) {
     return reg.test(key)
   })
 }
-export function isSumNodeStartReg(item, key) {
-  let reg = RegExp(item + '_(?=)S*', 'g')
-  return reg.test(key)
-}
-export function isQdReg(item, key) {
-  let reg = RegExp(item + '(?=)S*', 'g')
-  return reg.test(key)
-}
 export function isSumLastNode(key) {
   return /\_(?<=)\d*sumlast/g.test(key)
 }
@@ -39,10 +31,6 @@ export function isSumNodeEnd(key) {
 }
 export function isNodeIncludeArray(array, node) {
   return array.includes(getOriginKey(node.key))
-}
-export function isSumNodeEndReg(item, key) {
-  let reg = RegExp('_(?<=)S*' + item, 'g')
-  return reg.test(key)
 }
 export function replaceRowColPrx(key){
   return key.replace(/\_(?<=)\d*(rows|cols)\d*/g,'')
