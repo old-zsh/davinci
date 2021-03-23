@@ -1,8 +1,8 @@
 /*
  * @Author: your name
  * @Date: 2020-12-21 17:56:09
- * @LastEditTime: 2021-01-28 18:07:41
- * @LastEditors: your name
+ * @LastEditTime: 2021-03-23 17:57:33
+ * @LastEditors: Please set LastEditors
  * @Description: In User Settings Edit
  * @FilePath: /davinci-fork/davinci/webapp/app/containers/Widget/components/Pivot/node.ts
  */
@@ -13,6 +13,9 @@ class Node {
   type: any
   parent: any
   children: any[]
+  originKey: any
+  parentId: any
+  type: any
   constructor(obj) {
     this.data = obj.data;
     this.value = obj.value;
@@ -21,6 +24,8 @@ class Node {
     this.type = obj.type;
     this.parent = null;
     this.children = obj.children || [];
+    this.originKey = obj.originKey
+    this.type = obj.type
   }
 }
 export default Node

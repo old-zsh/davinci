@@ -164,18 +164,34 @@ class MultiwayTree {
       existEqualNode,
       initKey,
       levelKey,
+      levelType,
       originListItem
     } = this.pointOption
-
+    let key = isExistEqualParent ? existEqualNode.key : initKey
     return {
       data: isMetrics ? originListItem[levelKey] : null,
       value: isMetrics ? levelKey : originListItem[levelKey],
-      initKey,
+      originKey: getOriginKey(key),
       parentId: tree.getParentId(treeNodeGroup),
-      key: isExistEqualParent ? existEqualNode.key : initKey
+      key,
+      initKey,
+      type: levelType
     }
   }
-
+  public getNodeLevelType(levelKey) {
+    const isRow = this.widgetProps.rowArray.includes(levelKey)
+      const isCol = this.widgetProps.colArray.includes(levelKey)
+      const isMetrics = this.widgetProps.metrics.includes(levelKey)
+      let levelType
+      if(isRow){
+        levelType = 'row'
+      } else if(isCol){
+        levelType = 'col'
+      } else {
+        levelType = 'metrics'
+      }
+      return levelType
+  }
   public getLevelGroupAttribute(originListItem, listIdx) {
     const treeNodeGroup = []
     const targetNodeGroup = []
@@ -185,13 +201,15 @@ class MultiwayTree {
       const isMetrics = this.widgetProps.metrics.includes(levelKey)
       const parentKey = `${levelKeyGroup[index - 1]}_${listIdx}`
       const initKey = `${levelKey}_${listIdx}`
+      const levelType = tree.getNodeLevelType(levelKey)
       this.pointOption = {
         initKey,
         parentKey,
         isMetrics,
         levelKey,
         listIdx,
-        originListItem
+        originListItem,
+        levelType
       }
       tree.getEqualParent(index, treeNodeGroup)
       Array.prototype.push.call(
@@ -245,7 +263,7 @@ class MultiwayTree {
         const args = { backParent, parentNode }
         const getRoot = (args) => {
           if (
-            this.labelText.rootKey.includes(getOriginKey(args.backParent.key))
+            this.labelText.rootKey.includes(args.backParent.originKey)
           ) {
             return tree.getFirstNotSum(parentNode).children
           }
@@ -263,7 +281,7 @@ class MultiwayTree {
     let currentNode = queue.shift()
     while (
       currentNode &&
-      getOriginKey(currentNode.key) !== this.widgetProps.colArray[0]
+      currentNode.originKey !== this.widgetProps.colArray[0]
     ) {
       queue.push(...currentNode.children)
       currentNode = queue.shift()
@@ -320,7 +338,9 @@ class MultiwayTree {
     const group = polymerizeGroup || currentNode
     return group.reduce((sum, node) => {
       if (
-        getOriginKey(parentNode.key) ==
+        // getOriginKey(parentNode.key) ==
+        // this.widgetProps.colArray[this.widgetProps.colArray.length - 1]
+        parentNode.originKey ==
         this.widgetProps.colArray[this.widgetProps.colArray.length - 1]
       ) {
         return sum
@@ -335,7 +355,7 @@ class MultiwayTree {
   }
   // 获取总和总计节点类型
   public decideSumBranchType(node) {
-    const isBeiginNoneParentSumKey = getOriginKey(tree.getFirstNotSum(node).key)
+    const isBeiginNoneParentSumKey = tree.getFirstNotSum(node).originKey
 
     if (isBeiginNoneParentSumKey === this.labelText.rootKey[0]) {
       return 'rowSum'
@@ -357,7 +377,7 @@ class MultiwayTree {
 
   public getColArrayFirstParent(node) {
     const getColArrayFirstParent = (node) => {
-      if (getOriginKey(node.key) === this.widgetProps.colArray[0]) return node
+      if (node.originKey === this.widgetProps.colArray[0]) return node
       node = node.parent
       return getColArrayFirstParent(node)
     }
@@ -397,10 +417,10 @@ class MultiwayTree {
       ) &&
       ['colSum'].includes(tree.decideSumBranchType(parentNode))
     const isColStartSumText =
-      (!isQuotaSum(nodeValue) &&
+      (!(nodeValue.type == 'metrics') &&
         isNodeIncludeArray([...this.widgetProps.colArray], parentNode) &&
         isSumLastNode(tree.getColArrayFirstParent(parentNode).key)) ||
-      (getOriginKey(parentNode.key) ===
+      (parentNode.originKey ===
         this.widgetProps.rowArray[this.widgetProps.rowArray.length - 1] &&
         isLastSumNode &&
         this.widgetProps.colArray.length)
@@ -500,6 +520,8 @@ class MultiwayTree {
             newNode[key] = parentNode
           } else if (key === 'key') {
             newNode[key] = tree.decideSumNodeKeyTextDisplay(options)
+            newNode.originKey = getOriginKey(newNode.key)
+            newNode.type = tree.getNodeLevelType(newNode.originKey)
           } else if (key === 'value') {
             newNode[key] = tree.decideSumOrSubSumTextDisplay(options)
           } else if (key == 'children') {
@@ -528,7 +550,7 @@ class MultiwayTree {
     let currentNode = queue.shift()
     while (
       currentNode &&
-      this.widgetProps.rowColConcat.includes(getOriginKey(currentNode.key))
+      this.widgetProps.rowColConcat.includes(currentNode.originKey)
     ) {
       if (currentNode) {
         queue.push(...currentNode.children)
@@ -641,19 +663,16 @@ class MultiwayTree {
   public getJson() {
     this.widgetProps.treeRootTagNodeList.forEach((item) => {
       const obj = {}
-      const iteration = (item, obj) => {
-        if (!item.parent) {
-          return this.widgetProps.transformedWideTableList.push(obj)
-        }
-        if (isQuotaSum(item.key)) {
-          obj[getOriginKey(item.key)] = item.data
+      while(item.parent){
+        // if (isQuotaSum(item.key)) {
+        if(item.type === 'metrics') {
+          obj[item.originKey] = item.data
         } else {
-          obj[getOriginKey(item.key)] = item.value
+          obj[item.originKey] = item.value
         }
         item = item.parent
-        return iteration(item, obj)
       }
-      iteration(item, obj)
+      this.widgetProps.transformedWideTableList.push(obj)
     })
   }
   public initWidgetProps(options) {
@@ -678,7 +697,9 @@ class MultiwayTree {
     tree.addTotalNodeToTree()
     tree.setNodeParentName()
     tree.calcSumNodeDFS()
+    console.time('time');
     tree.getJson()
+    console.timeEnd('time')
     return tree
   }
 }
