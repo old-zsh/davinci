@@ -240,18 +240,20 @@ export class Pivot extends React.PureComponent<IPivotProps, IPivotStates> {
       return rowKeys
     }
     const getPartGroupByKey = (divideGroupByLevel, index) => {
-      if (index > Math.max(rows.length - 2, 0)) return divideGroupByLevel
-      divideGroupByLevel = iteration(divideGroupByLevel, index)
-      index++
-      return getPartGroupByKey(divideGroupByLevel, index)
+      while(index <= Math.max(rows.length - 2, 0)){
+        divideGroupByLevel = iteration(divideGroupByLevel, index)
+        index++
+      }
+      return divideGroupByLevel
     }
     const result = getPartGroupByKey(this.rowKeys, 0)
     const flatItem = (group) => {
-      if (group[0].every((d) => !Array.isArray(d))) return group
-      group = group.reduce((pre, cur) => {
-        return (pre = [...pre, ...cur])
-      }, [])
-      return flatItem(group)
+      while(!group[0].every((d) => !Array.isArray(d))){
+        group = group.reduce((pre, cur) => {
+          return (pre = [...pre, ...cur])
+        }, [])
+      }
+      return group
     }
     this.rowKeys = flatItem(result)
   }
@@ -351,7 +353,9 @@ export class Pivot extends React.PureComponent<IPivotProps, IPivotStates> {
 
     // console.log(props, 'props Pivot')
     if(metrics.length == 1 && data.length){
+      console.time('time1')
       data = this.setOriginOption(props)
+      console.timeEnd('time1')
     }
 
     this.rowHeaderWidths = rows.map((r) => getPivotContentTextWidth(r, 'bold'))
@@ -379,7 +383,9 @@ export class Pivot extends React.PureComponent<IPivotProps, IPivotStates> {
       this.rowKeys = this.getSumRowAndColKeys(this.rowKeys, props)
       this.colKeys = this.getSumRowAndColKeys(this.colKeys, props)
       if (this.rowKeys.length > 1) {
+        console.time('time2')
         this.getSortSumNode(rows)
+        console.timeEnd('time2')
       }
     }
 
