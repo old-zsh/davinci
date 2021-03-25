@@ -179,9 +179,9 @@ class MultiwayTree {
     }
   }
   public getNodeLevelType(levelKey) {
-    const isRow = this.widgetProps.rowArray.includes(levelKey)
+    const isRow = [...this.widgetProps.rowArray, ...this.labelText.rootKey].includes(levelKey)
     const isCol = this.widgetProps.colArray.includes(levelKey)
-    const isMetrics = this.widgetProps.metrics.includes(levelKey)
+    // const isMetrics = this.widgetProps.metrics.includes(levelKey)
     let levelType
     if (isRow) {
       levelType = 'row'
@@ -201,6 +201,7 @@ class MultiwayTree {
       const isMetrics = this.widgetProps.metrics.includes(levelKey)
       const parentKey = `${levelKeyGroup[index - 1]}_${listIdx}`
       const initKey = `${levelKey}_${listIdx}`
+      // console.log(levelKey, 'levelKey')
       const levelType = tree.getNodeLevelType(levelKey)
       this.pointOption = {
         initKey,
@@ -374,9 +375,10 @@ class MultiwayTree {
     return node
   }
   public decideSumNodeKeyTextDisplay(options) {
-    const { nodeValue, isLastSumNode, indexNumber } = options
+    const { nodeValue, isLastSumNode, indexNumber, currentNode } = options
+    console.log(nodeValue, options, '1111')
     const isSumLastText =
-      (nodeValue.type === 'col') 
+      (currentNode.type === 'col') 
       && isLastSumNode
 
     if (isSumLastText) {
@@ -444,7 +446,7 @@ class MultiwayTree {
     // 普通节点的进行复制 polymerizeGroup 为 聚合后的头部
     const isNeedCopy =
       !isLastSumNode &&
-      parentNode.type === 'col'
+      (parentNode.type === 'col')
     if (polymerizeGroup || isNeedCopy) {
       const polymerizeOptions = {
         deepCopy,
@@ -654,6 +656,7 @@ class MultiwayTree {
     tree.addTotal()
     tree.getMetricNodeList()
     tree.calcSumNodeDFS()
+    console.log(tree, 'tree')
     console.timeEnd('time')
 
     return tree
