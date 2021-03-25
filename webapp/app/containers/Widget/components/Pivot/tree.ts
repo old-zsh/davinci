@@ -4,6 +4,7 @@ import {
   getOriginKey,
   isSumLastNode,
   isSumNodeEnd,
+  isColRowMermber
 } from './util'
 class MultiwayTree {
   public treePointItem = []
