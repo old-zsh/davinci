@@ -589,12 +589,7 @@ class MultiwayTree {
         }
         return
       }
-      let obj = {}
-      while (item.parent) {
-        obj[item.originKey] = item.type === 'metrics' ? item.data : item.value
-        item = item.parent
-      }
-      this.widgetProps.transformedWideTableList.push(obj)
+     
     })
   }
 
@@ -634,6 +629,16 @@ class MultiwayTree {
     // 最后searchTarget为tagNode
     return searchTarget[0].data
   }
+  public getJson(){
+    this.widgetProps.metricNodeList.forEach((item) => {
+      let obj = {}
+      while (item.parent) {
+        obj[item.originKey] = item.type === 'metrics' ? item.data : item.value
+        item = item.parent
+      }
+      this.widgetProps.transformedWideTableList.push(obj)
+    })
+  }
   public initProps(options) {
     const { metrics, rowGroup, colGroup, wideTableList } = options
     this.widgetProps.rowColConcat = [
@@ -660,7 +665,7 @@ class MultiwayTree {
     tree.addTotal()
     tree.getMetricNodeList()
     tree.calcSumNodeDFS()
-    console.log(tree, 'tree')
+    tree.getJson()
     console.timeEnd('time')
 
     return tree
