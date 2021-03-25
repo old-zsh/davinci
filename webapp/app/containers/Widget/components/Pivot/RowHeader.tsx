@@ -14,7 +14,6 @@ import {
   getStyleConfig
 } from '../util'
 import { PIVOT_LINE_HEIGHT, DEFAULT_SPLITER } from 'app/globalConstants'
-import { isElementOfArray } from './util'
 const styles = require('./Pivot.less')
 
 interface IRowHeaderProps {
