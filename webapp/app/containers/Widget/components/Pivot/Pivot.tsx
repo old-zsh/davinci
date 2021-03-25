@@ -337,7 +337,23 @@ export class Pivot extends React.PureComponent<IPivotProps, IPivotStates> {
     )
     return resultList
   }
-
+  private getRemoveSuffixData = (props) => {
+    let { data, cols, rows } = props
+    const removeRowColPrx = (key) => {
+      return key.replace(/\_(?<=)\d*(rows|cols)\d*/g, '')
+    }
+    data.reduce((data, item) => {
+      let groups = cols
+      .map((c) => `${c.name}_cols`)
+      .concat(rows.map((r) => `${r.name}_rows`))
+      .filter((g) => g !== '指标名称')
+      item = groups.reduce((obj, key) => {
+        obj[key] = item[removeRowColPrx(key)]
+        return obj
+      }, {})
+      return item
+    }, [])
+  }
   private getRenderData = (props) => {
     let {
       width,
@@ -362,30 +378,18 @@ export class Pivot extends React.PureComponent<IPivotProps, IPivotStates> {
     if (!cols.length && !rows.length) {
       this.tree[0] = data.slice()
     } else {
-      let groups = cols
-        .map((c) => `${c.name}_cols`)
-        .concat(rows.map((r) => `${r.name}_rows`))
-        .filter((g) => g !== '指标名称')
-      const removeRowColPrx = (key) => {
-        return key.replace(/\_(?<=)\d*(rows|cols)\d*/g, '')
-      }
-      data.reduce((data, item) => {
-        item = groups.reduce((obj, key) => {
-          obj[key] = item[removeRowColPrx(key)]
-          return obj
-        }, {})
-        return item
-      }, [])
+      this.getRemoveSuffixData(props)
+
       data.forEach((record) => {
         this.getRowKeyAndColKey(props, record, !!dimetionAxis)
       })
+
       console.log(props.sum,props.sumType, 'sum和sumType的值')
       this.rowKeys = this.getSumRowAndColKeys(this.rowKeys, props)
       this.colKeys = this.getSumRowAndColKeys(this.colKeys, props)
+
       if (this.rowKeys.length > 1) {
-        console.time('time2')
         this.getSortSumNode(rows)
-        console.timeEnd('time2')
       }
     }
 

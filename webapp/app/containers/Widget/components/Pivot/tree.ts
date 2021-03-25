@@ -168,6 +168,7 @@ class MultiwayTree {
     } = this.pointOption
     let key = isExistEqualParent ? existEqualNode.key : initKey
     const sumEnd = isSumNodeEnd(key)
+    const sumLastEnd = isSumLastNode(key)
     return {
       data: isMetrics ? originListItem[levelKey] : null,
       value: isMetrics ? levelKey : originListItem[levelKey],
@@ -176,6 +177,7 @@ class MultiwayTree {
       key,
       initKey,
       type: levelType,
+      sumLastEnd,
       sumEnd // sum(总停留时间)_19sum(true) sum(总停留时间)_1(false)
     }
   }
@@ -377,7 +379,6 @@ class MultiwayTree {
   }
   public decideSumNodeKeyTextDisplay(options) {
     const { nodeValue, isLastSumNode, indexNumber, currentNode } = options
-    console.log(nodeValue, options, '1111')
     const isSumLastText =
       (currentNode.type === 'col') 
       && isLastSumNode
@@ -406,9 +407,10 @@ class MultiwayTree {
         this.widgetProps.rowLast
       ].includes(parentNode.originKey) &&
       ['colSum'].includes(tree.decideSumBranchType(parentNode))
+
     const isColStartSumText =
       (!isMetricValue &&[...this.widgetProps.colArray].includes(parentNode.originKey) &&
-        isSumLastNode(tree.getColArrayFirstParent(parentNode).key)) ||
+      tree.getColArrayFirstParent(parentNode).sumLastEnd) ||
       (isParentRowLast &&
         isLastSumNode &&
         this.widgetProps.colArray.length)
@@ -508,6 +510,7 @@ class MultiwayTree {
             newNode.originKey = getOriginKey(newNode.key)
             newNode.type = tree.getNodeLevelType(newNode.originKey)
             newNode.sumEnd = isSumNodeEnd(newNode.key)
+            newNode.sumLastEnd = isSumLastNode(newNode.key)
           } else if (key === 'value') {
             newNode[key] = tree.decideSumOrSubSumTextDisplay(options)
           } else if (key == 'children') {

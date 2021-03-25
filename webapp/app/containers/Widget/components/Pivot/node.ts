@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2020-12-21 17:56:09
- * @LastEditTime: 2021-03-24 10:25:23
+ * @LastEditTime: 2021-03-25 15:40:40
  * @LastEditors: Please set LastEditors
  * @Description: In User Settings Edit
  * @FilePath: /davinci-fork/davinci/webapp/app/containers/Widget/components/Pivot/node.ts
@@ -16,6 +16,7 @@ class Node {
   originKey: any
   parentId: any
   sumEnd: any
+  sumLastEnd: any
   constructor(obj) {
     this.data = obj.data;
     this.value = obj.value;
@@ -27,6 +28,7 @@ class Node {
     this.originKey = obj.originKey
     this.type = obj.type
     this.sumEnd = obj.sumEnd
+    this.sumLastEnd = obj.sumLastEnd
   }
 }
 export default Node
