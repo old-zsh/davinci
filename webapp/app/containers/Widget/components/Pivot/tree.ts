@@ -1,11 +1,6 @@
 import Node from './node'
 import cloneDeep from 'lodash/cloneDeep'
-import {
-  getOriginKey,
-  isSumLastNode,
-  isSumNodeEnd,
-  isQuotaSum
-} from './util'
+import { getOriginKey, isSumLastNode, isSumNodeEnd, isQuotaSum } from './util'
 class MultiwayTree {
   public treePointItem = []
   public widgetProps = {
@@ -182,7 +177,10 @@ class MultiwayTree {
     }
   }
   public getNodeLevelType(levelKey) {
-    const isRow = [...this.widgetProps.rowArray, ...this.labelText.rootKey].includes(levelKey)
+    const isRow = [
+      ...this.widgetProps.rowArray,
+      ...this.labelText.rootKey
+    ].includes(levelKey)
     const isCol = this.widgetProps.colArray.includes(levelKey)
     // const isMetrics = this.widgetProps.metrics.includes(levelKey)
     let levelType
@@ -246,7 +244,6 @@ class MultiwayTree {
     })
   }
 
-  // 获取父节点首个不为sum
   public getFirstNotSum(node) {
     const { subSumText } = this.labelText
     if (!node.sumEnd) {
@@ -258,6 +255,7 @@ class MultiwayTree {
     node = node.parent
     return tree.getFirstNotSum(node)
   }
+
   // 获取分支集合 总计和小计两部分
   public getPartBranch(parentNode) {
     const backParent = cloneDeep(parentNode)
@@ -265,7 +263,7 @@ class MultiwayTree {
     if (backParent.originKey === this.widgetProps.rowLast) {
       if (backParent.sumEnd) {
         const args = { backParent, parentNode }
-        while(!this.labelText.rootKey.includes(args.backParent.originKey)){
+        while (!this.labelText.rootKey.includes(args.backParent.originKey)) {
           args.backParent = args.backParent.parent
         }
         return tree.getFirstNotSum(parentNode).children
@@ -286,6 +284,7 @@ class MultiwayTree {
     }
     return [...queue, currentNode]
   }
+
   // 判断聚合数组是否为空
   public decidePolymerizeGroupEmpty(polymerizeGroup, node) {
     return (
@@ -293,15 +292,19 @@ class MultiwayTree {
       polymerizeGroup.every((item) => item.value !== node.value)
     )
   }
+
   // 聚合分支 at lastRowNode  parentNode为lastRowNode curNode为 startColNode
   public getMergePartBranch(parentNode) {
     const polymerizeGroup = []
     tree.getPartBranch(parentNode).forEach((item) => {
       tree.collectChildGroup(item).forEach((node) => {
-        const colBeginNode = new Node(cloneDeep(node))
+        let colBeginNode = new Node(cloneDeep(node))
         if (tree.decidePolymerizeGroupEmpty(polymerizeGroup, node)) {
           polymerizeGroup.push(colBeginNode)
         } else {
+          let origin = polymerizeGroup.find(
+            (item) => item.value == colBeginNode.value
+          )
           const iteration = (origin, target) => {
             if (!origin && !target) {
               return
@@ -315,9 +318,6 @@ class MultiwayTree {
               origin.children[0]
             return iteration(origin, target)
           }
-          const origin = polymerizeGroup.find(
-            (item) => item.value == colBeginNode.value
-          )
           iteration(origin, colBeginNode)
         }
       })
@@ -355,14 +355,10 @@ class MultiwayTree {
 
     if (isBeiginNoneParentSumKey === this.labelText.rootKey[0]) {
       return 'rowSum'
-    } else if (
-      isBeiginNoneParentSumKey ===
-      this.widgetProps.rowLast
-    ) {
+    } else if (isBeiginNoneParentSumKey === this.widgetProps.rowLast) {
       return 'colSum'
     } else if (
-      isBeiginNoneParentSumKey !==
-        this.widgetProps.rowLast &&
+      isBeiginNoneParentSumKey !== this.widgetProps.rowLast &&
       this.widgetProps.rowArray.includes(isBeiginNoneParentSumKey)
     ) {
       return 'rowSubSum'
@@ -372,22 +368,57 @@ class MultiwayTree {
   }
 
   public getColArrayFirstParent(node) {
-    while(node.originKey !== this.widgetProps.colArray[0]){
+    while (node.originKey !== this.widgetProps.colArray[0]) {
       node = node.parent
     }
     return node
   }
+
   public decideSumNodeKeyTextDisplay(options) {
     const { nodeValue, isLastSumNode, indexNumber, currentNode } = options
-    const isSumLastText =
-      (currentNode.type === 'col') 
-      && isLastSumNode
-
-    if (isSumLastText) {
+    if (currentNode.type === 'col' && isLastSumNode) {
       return `${nodeValue}sumlast`
     } else {
-      // 对于行指标的key
       return `${nodeValue}${indexNumber}sum`
+    }
+  }
+
+  public decideSumAttribute(options) {
+    const {
+      newNode,
+      key,
+      deepCopy,
+      parentNode,
+      nodeValue,
+      isLastSumNode
+    } = options
+    switch (key) {
+      case 'parentId':
+        newNode[key] = parentNode.key
+        break
+      case 'parent':
+        newNode[key] = parentNode
+        break
+      case 'key':
+        newNode.key = tree.decideSumNodeKeyTextDisplay(options)
+        newNode.originKey = getOriginKey(newNode.key)
+        newNode.type = tree.getNodeLevelType(newNode.originKey)
+        newNode.sumEnd = isSumNodeEnd(newNode.key)
+        newNode.sumLastEnd = isSumLastNode(newNode.key)
+        break
+      case 'value':
+        newNode[key] = tree.decideSumOrSubSumTextDisplay(options)
+        break
+      case 'children':
+        newNode[key] = tree.copyIteration(
+          deepCopy,
+          nodeValue,
+          newNode,
+          isLastSumNode
+        )
+        break
+      default:
+        newNode[key] = null
     }
   }
   // 判断总和和合计文字显示
@@ -396,24 +427,25 @@ class MultiwayTree {
     const { subSumText, sumText } = this.labelText
     const isMetricValue = parentNode.originKey == this.widgetProps.colLast
     const isParentRowLast = parentNode.originKey == this.widgetProps.rowLast
-  
+   
     const isRowSumText =
       !isParentRowLast &&
-      [...this.widgetProps.rowArray, ...this.labelText.rootKey].includes(parentNode.originKey)&&
+      [...this.widgetProps.rowArray, ...this.labelText.rootKey].includes(
+        parentNode.originKey
+      ) &&
       ['rowSum'].includes(tree.decideSumBranchType(parentNode))
-    const isColSumText = !isMetricValue &&
-      [
-        ...this.widgetProps.colArray,
-        this.widgetProps.rowLast
-      ].includes(parentNode.originKey) &&
+    const isColSumText =
+      !isMetricValue &&
+      [...this.widgetProps.colArray, this.widgetProps.rowLast].includes(
+        parentNode.originKey
+      ) &&
       ['colSum'].includes(tree.decideSumBranchType(parentNode))
 
     const isColStartSumText =
-      (!isMetricValue &&[...this.widgetProps.colArray].includes(parentNode.originKey) &&
-      tree.getColArrayFirstParent(parentNode).sumLastEnd) ||
-      (isParentRowLast &&
-        isLastSumNode &&
-        this.widgetProps.colArray.length)
+      (!isMetricValue &&
+        [...this.widgetProps.colArray].includes(parentNode.originKey) &&
+        tree.getColArrayFirstParent(parentNode).sumLastEnd) ||
+      (isParentRowLast && isLastSumNode && this.widgetProps.colArray.length)
     const isSubSumText = isLastSumNode && !isQuotaSum(nodeValue)
     if (isRowSumText || isColSumText || isColStartSumText) {
       return sumText
@@ -423,7 +455,7 @@ class MultiwayTree {
       return nodeValue
     }
   }
-  
+
   public copyIteration(
     deepCopy,
     currentNode,
@@ -432,6 +464,7 @@ class MultiwayTree {
   ) {
     return deepCopy({ currentNode, parentNode }, { isLastSumNode })
   }
+
   // 聚合分支以及对聚合分支普通节点的复制
   public copyPolymerizeNoramlChild(copyParems) {
     // 聚合分叉分支当父节点是行最后一个时候开始进行分叉
@@ -448,9 +481,7 @@ class MultiwayTree {
       polymerizeGroup = tree.getMergePartBranch(parentNode)
     }
     // 普通节点的进行复制 polymerizeGroup 为 聚合后的头部
-    const isNeedCopy =
-      !isLastSumNode &&
-      (parentNode.type === 'col')
+    const isNeedCopy = !isLastSumNode && parentNode.type === 'col'
     if (polymerizeGroup || isNeedCopy) {
       const polymerizeOptions = {
         deepCopy,
@@ -463,6 +494,7 @@ class MultiwayTree {
     }
     return newNode
   }
+
   // isLastSumNode true:统一最后一节点, false: 聚合后 要copy普通节点，非sum节点
   public copyTotalNode(currentNode, parentNode) {
     let indexNumber = 0
@@ -481,7 +513,8 @@ class MultiwayTree {
         ...copyNode,
         ...copyOptions,
         newNode,
-        indexNumber
+        indexNumber,
+        isLastSumNode
       }
       if (currentNode.length) {
         newNode = tree.copyPolymerizeNoramlChild(copyParems)
@@ -494,36 +527,15 @@ class MultiwayTree {
         newNode.push(copyNode)
       } else {
         Object.keys(currentNode).forEach((key) => {
-          const isEmpty = Array.isArray(newNode[key])
+          const exitedVal = Array.isArray(newNode[key])
             ? newNode[key].length
             : newNode[key]
-          if (isEmpty) {
+          if (exitedVal) {
             return
           }
           const nodeValue = currentNode[key]
-          const options = { nodeValue, ...copyParems }
-          if (key === 'parentId') {
-            newNode[key] = parentNode.key
-          } else if (key === 'parent') {
-            newNode[key] = parentNode
-          } else if (key === 'key') {
-            newNode.key = tree.decideSumNodeKeyTextDisplay(options)
-            newNode.originKey = getOriginKey(newNode.key)
-            newNode.type = tree.getNodeLevelType(newNode.originKey)
-            newNode.sumEnd = isSumNodeEnd(newNode.key)
-            newNode.sumLastEnd = isSumLastNode(newNode.key)
-          } else if (key === 'value') {
-            newNode[key] = tree.decideSumOrSubSumTextDisplay(options)
-          } else if (key == 'children') {
-            newNode[key] = tree.copyIteration(
-              deepCopy,
-              nodeValue,
-              newNode,
-              isLastSumNode
-            )
-          } else {
-            newNode[key] = null
-          }
+          const options = { nodeValue, key, ...copyParems }
+          tree.decideSumAttribute(options)
         })
       }
       return newNode
@@ -538,13 +550,14 @@ class MultiwayTree {
       currentNode &&
       this.widgetProps.rowColConcat.includes(currentNode.originKey)
     ) {
-        queue.push(...currentNode.children)
-        currentNode.children.push(
-          tree.copyTotalNode(currentNode.children[0], currentNode)
-        )
-        currentNode = queue.shift()
+      queue.push(...currentNode.children)
+      currentNode.children.push(
+        tree.copyTotalNode(currentNode.children[0], currentNode)
+      )
+      currentNode = queue.shift()
     }
   }
+
   public getMetricNodeList() {
     const queue = [this.widgetProps.root]
     let currentNode = queue.shift()
@@ -557,20 +570,25 @@ class MultiwayTree {
       queue.push(...currentNode.children)
     }
   }
-  // 筛选 非sum node并求和
-  public getUnSumNodeReduceSum(children,cb) {
-    const nonSumNodeGroup = children.filter((item) => cb(item))
-    return nonSumNodeGroup.reduce((sum, node) => {
-      return (sum = sum + node.data)
-    }, 0)
+
+  public getUnSumNodeReduceSum(children, cb) {
+    return children
+      .filter((item) => cb(item))
+      .reduce((sum, node) => {
+        return (sum = sum + node.data)
+      }, 0)
   }
+
   public calcSumNodeDFS() {
+    console.log(
+      this.widgetProps.metricNodeList,
+      'this.widgetProps.metricNodeList'
+    )
     this.widgetProps.metricNodeList.forEach((item) => {
-      // 对于tagNode为sumNode
       if (item.sumEnd) {
         // origin初始值为tagSumNode,最终值为第一个parent为非sumNode,branchPath为tagSumNode路径
         const getFirstNonSumParent = (origin, branchPath) => {
-          while(origin.sumEnd){
+          while (origin.sumEnd) {
             branchPath.unshift(origin.value)
             origin = origin.parent
           }
@@ -582,55 +600,48 @@ class MultiwayTree {
         const { from, path } = getFirstNonSumParent(item, [])
         tree.matchSameNodeSum(from.children, path)
       } else {
-        // 对于tagNode为非sumNode
         while (item) {
-          const cb =(item)=> !item.sumEnd
-          item.data = tree.getUnSumNodeReduceSum(item.children, cb) || item.data  // 当item为 tagNode节点时 item.data = item.data
+          const cb = (item) => !item.sumEnd
+          // 当item为 tagNode节点时 item.data = item.data
+          item.data = tree.getUnSumNodeReduceSum(item.children, cb) || item.data
           item = item.parent
         }
         return
       }
-     
     })
   }
 
-  // 匹配 sumNode 相同同级节点进行向上递归求和
   public matchSameNodeSum(currentQueue, path) {
-    let initLevel = 0
-    let searchTarget = []
-    let target = currentQueue.find((item) =>
-      item.sumEnd
-    ) // 获取目标
-    while(currentQueue.length){
-      // path level为总和总计, 筛选非 总计总和的分支
-      searchTarget = currentQueue.filter((item) => {
-        if (this.labelText.sumConcat.includes(path[initLevel])) {
-          return item.value !== path[initLevel]
+    let level = 0
+    let needSumNodeGroup = []
+    let currentLevelSumNode = currentQueue.find((item) => item.sumEnd) // 计算目标
+    while (currentQueue.length) {
+      // needSumNodeGroup 需相加的节点
+      needSumNodeGroup = currentQueue.filter((item) => {
+        if (this.labelText.sumConcat.includes(path[level])) {
+          return item.value !== path[level]
         } else {
-          return item.value == path[initLevel]
+          return item.value == path[level]
         }
       })
-      if (this.labelText.sumConcat.includes(path[initLevel])) {
-        // 筛选 currentQueue中 非sumNode分支的和
-        const cb =(item)=> !item.sumEnd
-        target.data = tree.getUnSumNodeReduceSum(currentQueue, cb)
-      } else {
-        // 筛选与path[initLevel]同名的分支求和，且筛选去重
-        const cb = (item) => !isSumNodeEnd(item.parentId)
-        target.data = tree.getUnSumNodeReduceSum(searchTarget, cb)
-      }
-      initLevel++
+      const cb = (item) => !item.sumEnd
+      currentLevelSumNode.data = tree.getUnSumNodeReduceSum(
+        needSumNodeGroup,
+        cb
+      )
+      level++
       // 对上一级目标分支的child进行聚合
-      currentQueue = searchTarget.reduce((pre, cur) => {
+      currentQueue = needSumNodeGroup.reduce((pre, cur) => {
         return pre.concat(cur.children)
       }, [])
       // 对要进行赋值node的child进行聚合
-      target = target.children.find((item) => item.value === path[initLevel])
+      currentLevelSumNode = currentLevelSumNode.children.find(
+        (item) => item.value === path[level]
+      )
     }
-    // 最后searchTarget为tagNode
-    return searchTarget[0].data
   }
-  public getJson(){
+
+  public getJson() {
     this.widgetProps.metricNodeList.forEach((item) => {
       let obj = {}
       while (item.parent) {
@@ -640,12 +651,10 @@ class MultiwayTree {
       this.widgetProps.transformedWideTableList.push(obj)
     })
   }
+  
   public initProps(options) {
     const { metrics, rowGroup, colGroup, wideTableList } = options
-    this.widgetProps.rowColConcat = [
-      ...colGroup,
-      ...rowGroup,
-    ]
+    this.widgetProps.rowColConcat = [...colGroup, ...rowGroup]
     this.widgetProps.rowColConcat.pop()
     this.widgetProps.rowColConcat.push(...this.labelText.rootKey)
     this.widgetProps.metrics = metrics
@@ -655,20 +664,18 @@ class MultiwayTree {
     this.widgetProps.root = null
     this.widgetProps.metricNodeList = []
     this.widgetProps.transformedWideTableList = []
-    this.widgetProps.rowLast = colGroup[colGroup.length-1]
-    this.widgetProps.colLast = rowGroup[rowGroup.length-1]
+    this.widgetProps.rowLast = colGroup[colGroup.length - 1]
+    this.widgetProps.colLast = rowGroup[rowGroup.length - 1]
   }
 
   public getCompluteJson(options) {
-    console.time('time')
     tree.initProps(options)
     tree.setTree()
     tree.addTotal()
     tree.getMetricNodeList()
     tree.calcSumNodeDFS()
     tree.getJson()
-    console.timeEnd('time')
-
+    console.log(tree, 'tree')
     return tree
   }
 }
