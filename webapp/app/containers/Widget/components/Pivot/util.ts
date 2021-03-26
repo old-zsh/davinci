@@ -19,6 +19,6 @@ export function replaceRowColPrx(key){
 //     return reg.test(key)
 //   })
 // }
-// export function isQuotaSum(key) {
-//   return /(sum\()(?<=)(\W*)/g.test(key)
-// }
+export function isQuotaSum(key) {
+  return /(sum\()(?<=)(\W*)/g.test(key)
+}

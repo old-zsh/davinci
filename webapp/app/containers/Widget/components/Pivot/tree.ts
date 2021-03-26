@@ -4,6 +4,7 @@ import {
   getOriginKey,
   isSumLastNode,
   isSumNodeEnd,
+  isQuotaSum
 } from './util'
 class MultiwayTree {
   public treePointItem = []
@@ -413,7 +414,7 @@ class MultiwayTree {
       (isParentRowLast &&
         isLastSumNode &&
         this.widgetProps.colArray.length)
-    const isSubSumText = isLastSumNode && !isMetricValue
+    const isSubSumText = isLastSumNode && !isQuotaSum(nodeValue)
     if (isRowSumText || isColSumText || isColStartSumText) {
       return sumText
     } else if (isSubSumText) {
@@ -422,6 +423,7 @@ class MultiwayTree {
       return nodeValue
     }
   }
+  
   public copyIteration(
     deepCopy,
     currentNode,
