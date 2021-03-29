@@ -202,7 +202,6 @@ class MultiwayTree {
       const isMetrics = this.widgetProps.metrics.includes(levelKey)
       const parentKey = `${levelKeyGroup[index - 1]}_${listIdx}`
       const initKey = `${levelKey}_${listIdx}`
-      // console.log(levelKey, 'levelKey')
       const levelType = tree.getNodeLevelType(levelKey)
       this.pointOption = {
         initKey,
@@ -325,20 +324,16 @@ class MultiwayTree {
     return polymerizeGroup
   }
   // 复制聚合后非node节点
-  public copyPolymerizeNormalNode(polymerizeOptions) {
+  public copyPolymerizeNormalNode(copyParems,polymerizeGroup) {
     const {
       deepCopy,
       isLastSumNode,
       parentNode,
-      polymerizeGroup,
       currentNode
-    } = polymerizeOptions
+    } = copyParems
     const group = polymerizeGroup || currentNode
     return group.reduce((sum, node) => {
-      if (
-        parentNode.originKey ==
-        this.widgetProps.colArray[this.widgetProps.colArray.length - 1]
-      ) {
+      if ( parentNode.originKey == this.widgetProps.colLast) {
         return sum
       } else {
         const polyNormalNode = deepCopy(
@@ -469,28 +464,17 @@ class MultiwayTree {
   public copyPolymerizeNoramlChild(copyParems) {
     // 聚合分叉分支当父节点是行最后一个时候开始进行分叉
     const {
-      deepCopy,
-      currentNode,
       parentNode,
       newNode,
       isLastSumNode
     } = copyParems
     let polymerizeGroup
-    const isRowColLastLevels = parentNode.originKey === this.widgetProps.rowLast
-    if (isRowColLastLevels && this.widgetProps.colArray.length) {
+    if ((parentNode.originKey === this.widgetProps.rowLast) && this.widgetProps.colArray.length) {
       polymerizeGroup = tree.getMergePartBranch(parentNode)
     }
     // 普通节点的进行复制 polymerizeGroup 为 聚合后的头部
-    const isNeedCopy = !isLastSumNode && parentNode.type === 'col'
-    if (polymerizeGroup || isNeedCopy) {
-      const polymerizeOptions = {
-        deepCopy,
-        isLastSumNode,
-        parentNode,
-        polymerizeGroup,
-        currentNode
-      }
-      return tree.copyPolymerizeNormalNode(polymerizeOptions)
+    if (polymerizeGroup || (!isLastSumNode && parentNode.type === 'col')) {
+      return tree.copyPolymerizeNormalNode(copyParems,polymerizeGroup)
     }
     return newNode
   }
@@ -571,19 +555,15 @@ class MultiwayTree {
     }
   }
 
-  public getUnSumNodeReduceSum(children, cb) {
+  public getUnSumNodeReduceSum(children, callback) {
     return children
-      .filter((item) => cb(item))
+      .filter((item) => callback(item))
       .reduce((sum, node) => {
         return (sum = sum + node.data)
       }, 0)
   }
 
   public calcSumNodeDFS() {
-    console.log(
-      this.widgetProps.metricNodeList,
-      'this.widgetProps.metricNodeList'
-    )
     this.widgetProps.metricNodeList.forEach((item) => {
       if (item.sumEnd) {
         // origin初始值为tagSumNode,最终值为第一个parent为非sumNode,branchPath为tagSumNode路径
@@ -601,9 +581,9 @@ class MultiwayTree {
         tree.matchSameNodeSum(from.children, path)
       } else {
         while (item) {
-          const cb = (item) => !item.sumEnd
+          const callback = (item) => !item.sumEnd
           // 当item为 tagNode节点时 item.data = item.data
-          item.data = tree.getUnSumNodeReduceSum(item.children, cb) || item.data
+          item.data = tree.getUnSumNodeReduceSum(item.children, callback) || item.data
           item = item.parent
         }
         return
@@ -624,10 +604,10 @@ class MultiwayTree {
           return item.value == path[level]
         }
       })
-      const cb = (item) => !item.sumEnd
+      const callback = (item) => !item.sumEnd
       currentLevelSumNode.data = tree.getUnSumNodeReduceSum(
         needSumNodeGroup,
-        cb
+        callback
       )
       level++
       // 对上一级目标分支的child进行聚合
@@ -651,7 +631,7 @@ class MultiwayTree {
       this.widgetProps.transformedWideTableList.push(obj)
     })
   }
-  
+
   public initProps(options) {
     const { metrics, rowGroup, colGroup, wideTableList } = options
     this.widgetProps.rowColConcat = [...colGroup, ...rowGroup]
@@ -669,12 +649,14 @@ class MultiwayTree {
   }
 
   public getCompluteJson(options) {
+    console.time('time')
     tree.initProps(options)
     tree.setTree()
     tree.addTotal()
     tree.getMetricNodeList()
     tree.calcSumNodeDFS()
     tree.getJson()
+    console.timeEnd('time')
     console.log(tree, 'tree')
     return tree
   }
