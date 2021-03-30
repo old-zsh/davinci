@@ -61,7 +61,9 @@ class MultiwayTree {
   }
 
   public add(obj, toData) {
-    const node = new Node(obj)
+    const metrics = this.widgetProps.metrics
+
+    const node = new Node(obj, metrics)
     if (this.widgetProps.root === null) {
       this.widgetProps.root = node
       return this
@@ -164,8 +166,9 @@ class MultiwayTree {
     let key = isExistEqualParent ? existEqualNode.key : initKey
     const sumEnd = isSumNodeEnd(key)
     const sumLastEnd = isSumLastNode(key)
-    return {
-      data: isMetrics ? originListItem[levelKey] : null,
+    console.log(this.widgetProps.metrics)
+    let obj = {
+      // data: isMetrics ? originListItem[levelKey] : null,
       value: isMetrics ? levelKey : originListItem[levelKey],
       originKey: getOriginKey(key),
       parentId: tree.getParentId(treeNodeGroup),
@@ -175,6 +178,14 @@ class MultiwayTree {
       sumLastEnd,
       sumEnd // sum(总停留时间)_19sum(true) sum(总停留时间)_1(false)
     }
+    
+    if(isMetrics){
+      obj[levelKey] = isMetrics ? originListItem[levelKey] : null
+    } else {
+      obj[this.widgetProps.metrics[0]] =  null
+      obj[this.widgetProps.metrics[1]] =  null
+    }
+    return obj
   }
   public getNodeLevelType(levelKey) {
     const isRow = [
@@ -297,7 +308,8 @@ class MultiwayTree {
     const polymerizeGroup = []
     tree.getPartBranch(parentNode).forEach((item) => {
       tree.collectChildGroup(item).forEach((node) => {
-        let colBeginNode = new Node(cloneDeep(node))
+        const metrics = this.widgetProps.metrics
+        let colBeginNode = new Node(cloneDeep(node), metrics)
         if (tree.decidePolymerizeGroupEmpty(polymerizeGroup, node)) {
           polymerizeGroup.push(colBeginNode)
         } else {
@@ -490,8 +502,8 @@ class MultiwayTree {
       if (typeof currentNode !== 'object' || !currentNode) {
         return currentNode
       }
-
-      let newNode: any = Array.isArray(currentNode) ? [] : new Node({})
+      const metrics = this.widgetProps.metrics
+      let newNode: any = Array.isArray(currentNode) ? [] : new Node({}, metrics)
       const copyParems = {
         deepCopy,
         ...copyNode,
@@ -502,13 +514,16 @@ class MultiwayTree {
       }
       if (currentNode.length) {
         newNode = tree.copyPolymerizeNoramlChild(copyParems)
-        const copyNode = tree.copyIteration(
-          deepCopy,
-          currentNode[0],
-          parentNode,
-          true
-        )
-        newNode.push(copyNode)
+        currentNode.forEach((k)=>{
+          const copyNode = tree.copyIteration(
+            deepCopy,
+            k,
+            parentNode,
+            true
+          )
+          newNode.push(copyNode)
+        })
+       
       } else {
         Object.keys(currentNode).forEach((key) => {
           const exitedVal = Array.isArray(newNode[key])
@@ -649,14 +664,13 @@ class MultiwayTree {
   }
 
   public getCompluteJson(options) {
-    console.time('time')
     tree.initProps(options)
     tree.setTree()
+    debugger
     tree.addTotal()
     tree.getMetricNodeList()
     tree.calcSumNodeDFS()
     tree.getJson()
-    console.timeEnd('time')
     console.log(tree, 'tree')
     return tree
   }

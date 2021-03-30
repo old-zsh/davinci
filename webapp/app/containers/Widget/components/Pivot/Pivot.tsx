@@ -303,13 +303,15 @@ export class Pivot extends React.PureComponent<IPivotProps, IPivotStates> {
     const metricsItems = metrics[0]
     let metricsName
     if(metricsItems){
-      metricsName = `${metricsItems.agg}(${
-        metricsItems.name.split('@')[0]
-      })`
+      metricsName = metrics.map((item)=>{
+        return `${item.agg}(${
+          item.name.split('@')[0]
+        })`
+      })
     }
 
     const setOriginJsonByKey = (list) => {
-      const concatRowCol = metricsName ? [...colGroup, ...rowGroup, metricsName]: [...colGroup, ...rowGroup]
+      const concatRowCol = metricsName.length ? [...colGroup, ...rowGroup, ...metricsName]: [...colGroup, ...rowGroup]
       const wideList = list.reduce((pre, cur) => {
         cur = concatRowCol.reduce((obj, key) => {
           obj[key] = cur[replaceRowColPrx(key)]
@@ -321,7 +323,7 @@ export class Pivot extends React.PureComponent<IPivotProps, IPivotStates> {
     }
     const wideTableList = setOriginJsonByKey(data)
     const options = {
-      metrics: [metricsName],
+      metrics: metricsName,
       rowGroup,
       colGroup,
       wideTableList
@@ -367,11 +369,9 @@ export class Pivot extends React.PureComponent<IPivotProps, IPivotStates> {
     } = props
    
 
-    // console.log(props, 'props Pivot')
-    if(metrics.length == 1 && data.length){
-      console.time('time1')
+    if(metrics.length == 2 && data.length){
+      debugger
       data = this.setOriginOption(props)
-      console.timeEnd('time1')
     }
 
     this.rowHeaderWidths = rows.map((r) => getPivotContentTextWidth(r, 'bold'))
