@@ -335,7 +335,7 @@ export class Pivot extends React.PureComponent<IPivotProps, IPivotStates> {
       transformedWideTableList,
       rowGroup,
       colGroup,
-      [metricsName],
+      metricsName,
     )
     return resultList
   }
@@ -369,8 +369,7 @@ export class Pivot extends React.PureComponent<IPivotProps, IPivotStates> {
     } = props
    
 
-    if(metrics.length == 2 && data.length){
-      debugger
+    if(data.length){
       data = this.setOriginOption(props)
     }
 
@@ -379,15 +378,11 @@ export class Pivot extends React.PureComponent<IPivotProps, IPivotStates> {
       this.tree[0] = data.slice()
     } else {
       this.getRemoveSuffixData(props)
-
       data.forEach((record) => {
         this.getRowKeyAndColKey(props, record, !!dimetionAxis)
       })
-
-      console.log(props.sum,props.sumType, 'sum和sumType的值')
       this.rowKeys = this.getSumRowAndColKeys(this.rowKeys, props)
       this.colKeys = this.getSumRowAndColKeys(this.colKeys, props)
-
       if (this.rowKeys.length > 1) {
         this.getSortSumNode(rows)
       }

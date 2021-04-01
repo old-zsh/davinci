@@ -331,9 +331,12 @@ export class OperatingPanel extends React.Component<
         tip,
         chartStyles,
         mode,
-        selectedChart
+        selectedChart,
+        totalMetrics
       } = originalWidgetProps
       const { dataParams } = this.state
+      console.log(dataParams,originalWidgetProps, 'dataParams 初始化')
+      debugger
       const model = selectedView.model
       const currentWidgetlibs = widgetlibs[mode || 'pivot'] // FIXME 兼容 0.3.0-beta.1 之前版本
       if (mode === 'pivot') {
@@ -409,6 +412,21 @@ export class OperatingPanel extends React.Component<
                 visualType: modelColumn.visualType
               }
             )
+          }
+        })
+      }
+
+      if(totalMetrics){
+        totalMetrics.forEach((k)=>{
+          const modelColumn = model[decodeMetricName(k.name)]
+          if (modelColumn) {
+            dataParams.metrics.items = dataParams.metrics.items.concat({
+              ...k,
+              from: 'metrics',
+              type: 'value' as DragType,
+              visualType: modelColumn.visualType,
+              chart: currentWidgetlibs.find((wl) => wl.id === k.chart.id) // FIXME 兼容 0.3.0-beta.1 之前版本，widgetlib requireDimetions requireMetrics 有发生变更
+            })
           }
         })
       }
@@ -566,10 +584,12 @@ export class OperatingPanel extends React.Component<
     item: IDataParamSource,
     e: React.DragEvent<HTMLLIElement | HTMLParagraphElement>
   ) => {
+    console.log(item,e, 'insideDragStart 方法')
     this.dragStart({ ...item, from })(e)
   }
 
   private insideDragEnd = (dropType: DropType) => {
+    console.log(dropType, 'insideDragEndb 方法')
     if (!dropType) {
       const {
         dragged: { name, from },
@@ -672,6 +692,7 @@ export class OperatingPanel extends React.Component<
     changedItems: IDataParamSource[],
     config?: IDataParamConfig
   ) => {
+    console.log(name,dropIndex,dropType,changedItems, 'drop方法')
     const { multiDrag } = this.props
     const {
       dragged: stateDragged,
@@ -847,6 +868,7 @@ export class OperatingPanel extends React.Component<
   }
 
   private removeDropboxItem = (from: string) => (name: string) => () => {
+    console.log(name, 'removeDropboxItem 方法')
     const { dataParams, styleParams } = this.state
     const prop = dataParams[from]
     prop.items = prop.items.filter((i) => i.name !== name)
@@ -857,6 +879,7 @@ export class OperatingPanel extends React.Component<
     item: IDataParamSource,
     sortType: FieldSortTypes
   ) => {
+    console.log(item,sortType, 'getDropboxItemSortDirection 方法')
     const { dataParams, styleParams } = this.state
     const prop = dataParams[from]
     if (sortType !== FieldSortTypes.Custom) {
@@ -883,6 +906,7 @@ export class OperatingPanel extends React.Component<
     item: IDataParamSource,
     agg: AggregatorType
   ) => {
+    console.log(item, 'getDropboxItemAggregator 方法')
     const { dataParams, styleParams } = this.state
     const prop = dataParams[from]
     item.agg = agg
@@ -1037,6 +1061,7 @@ export class OperatingPanel extends React.Component<
     chart: IChartInfo
   ) => {
     const { dataParams } = this.state
+    console.log(this.state, 'this.state')
     item.chart = chart
     dataParams.metrics.items = [...dataParams.metrics.items]
     const selectedParams = this.getChartDataConfig(
@@ -1574,6 +1599,7 @@ export class OperatingPanel extends React.Component<
     key: string,
     value: string | number
   ) => {
+    console.log(key,value, 'dropboxValueChange 方法')
     const { mode, dataParams, styleParams } = this.state
     const { color, size } = dataParams
     switch (name) {
@@ -1986,12 +2012,52 @@ export class OperatingPanel extends React.Component<
       })
     }
 
+    const dropBoxItem = (k) => {
+      console.log(dataParams, 'dataParams')
+      const v = dataParams[k]
+      if (k === 'rows' && !showColsAndRows) {
+        return
+      }
+      if (k === 'cols') {
+        v.title = showColsAndRows ? '列' : '维度'
+      }
+      let panelList = []
+      if (k === 'color') {
+        panelList = metrics.items
+      }
+      if (k === 'size') {
+        panelList = v.items
+      }
+      return (
+        <Dropbox
+          key={k}
+          name={k}
+          title={v.title}
+          type={v.type}
+          value={v.value}
+          items={v.items}
+          mode={mode}
+          selectedChartId={chartModeSelectedChart.id}
+          dragged={dragged}
+          panelList={panelList}
+          dimetionsCount={dimetionsCount}
+          metricsCount={metricsCount}
+          onValueChange={this.dropboxValueChange(k)}
+          onItemDragStart={this.insideDragStart(k)}
+          onItemDragEnd={this.insideDragEnd}
+          onItemRemove={this.removeDropboxItem(k)}
+          beforeDrop={this.beforeDrop}
+          onDrop={this.drop}
+        />
+      )
+    }
+
     const coustomFieldSelectMenu = (
       <Menu onClick={this.coustomFieldSelect}>
         <MenuItem key="computed">计算字段</MenuItem>
       </Menu>
     )
-
+    console.log(dataParams, 'dataParams dropboxes值')
     const dropboxes = Object.entries(dataParams).map(([k, v]) => {
       if (k === 'rows' && !showColsAndRows) {
         return
@@ -2347,6 +2413,12 @@ export class OperatingPanel extends React.Component<
               </div>
             </div>
             <div className={styles.paneBlock}>
+              <h4>总和指标</h4>
+              <div className={styles.blockBody}>
+                {dropBoxItem('total')}
+              </div>
+            </div>
+            <div className={styles.paneBlock}>
               <h4>开启总和</h4>
               <div className={styles.blockBody}>
                 <Row
@@ -2360,7 +2432,7 @@ export class OperatingPanel extends React.Component<
                       size="small"
                       value={sum}
                       onChange={onChangeSum}
-                      disabled = { this.props.widgetProps.mode === "chart" || this.props.widgetProps.mode === "pivot" && this.props.widgetProps.metrics.length !==1}
+                      disabled = { this.props.widgetProps.mode === "chart"  }
                     >
                       <RadioButton value={false}>关闭</RadioButton>
                       <RadioButton value={true}>开启</RadioButton>
@@ -2368,12 +2440,11 @@ export class OperatingPanel extends React.Component<
                   </Col>
                 </Row>
               </div>
-              
             </div>
             <div className={styles.paneBlock}>
               <h4>总和类别 {sum}</h4>
               <div className={styles.blockBody}>
-              <Checkbox.Group  style={{ width: '100%' }} value={ sumType }  disabled = { this.props.widgetProps.mode === "chart" || this.props.widgetProps.mode === "pivot" && this.props.widgetProps.metrics.length !==1} onChange={onSumTypeChange}>
+              <Checkbox.Group  style={{ width: '100%' }} value={ sumType }  disabled = { this.props.widgetProps.mode === "chart"} onChange={onSumTypeChange}>
                 <Row
                   gutter={8}
                   type="flex"

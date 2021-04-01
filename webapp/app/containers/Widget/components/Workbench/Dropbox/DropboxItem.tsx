@@ -153,6 +153,7 @@ export class DropboxItem extends React.PureComponent<IDropboxItemProps, IDropbox
       const availableSettings =  getAvailableSettings(MapSettingTypes[container], MapItemTypes[item.type], MapItemValueTypes[item.visualType])
       const dropdownList = getSettingsDropdownList(availableSettings)
       let menuClass = ''
+      debugger
       if (type === 'value') {
         menuClass = styles.valueDropDown
       }
@@ -180,11 +181,11 @@ export class DropboxItem extends React.PureComponent<IDropboxItemProps, IDropbox
         >
           {pivotChartSelector}
           {contentWithDropdownList}
-          <Icon
+          {/* <Icon
             type="close-square-o"
             className={styles.remove}
             onClick={onRemove}
-          />
+          /> */}
         </div>
       </div>
     )

@@ -166,7 +166,6 @@ class MultiwayTree {
     let key = isExistEqualParent ? existEqualNode.key : initKey
     const sumEnd = isSumNodeEnd(key)
     const sumLastEnd = isSumLastNode(key)
-    console.log(this.widgetProps.metrics)
     let obj = {
       // data: isMetrics ? originListItem[levelKey] : null,
       value: isMetrics ? levelKey : originListItem[levelKey],
@@ -514,15 +513,26 @@ class MultiwayTree {
       }
       if (currentNode.length) {
         newNode = tree.copyPolymerizeNoramlChild(copyParems)
-        currentNode.forEach((k)=>{
+        if(parentNode.originKey === this.widgetProps.colLast){
+          currentNode.forEach((k)=>{
+            const copyNode = tree.copyIteration(
+              deepCopy,
+              k,
+              parentNode,
+              true
+            )
+            newNode.push(copyNode)
+          })
+        } else {
           const copyNode = tree.copyIteration(
             deepCopy,
-            k,
+            currentNode[0],
             parentNode,
             true
           )
           newNode.push(copyNode)
-        })
+        }
+        
        
       } else {
         Object.keys(currentNode).forEach((key) => {
@@ -577,6 +587,20 @@ class MultiwayTree {
         return (sum = sum + node.data)
       }, 0)
   }
+  public getUnSumNodeReduceSumMetrics(children, key,callback) {
+    let filterGroup
+    if(children[0].parent.originKey === this.widgetProps.colLast){
+      filterGroup = children
+    .filter((item) => callback(item) && (item.originKey === key))
+    } else {
+      filterGroup = children
+      .filter((item) => callback(item))
+    }
+
+    return filterGroup.reduce((sum, node) => {
+        return (sum = sum + node[key])
+      }, 0)
+  }
 
   public calcSumNodeDFS() {
     this.widgetProps.metricNodeList.forEach((item) => {
@@ -593,12 +617,21 @@ class MultiwayTree {
           }
         }
         const { from, path } = getFirstNonSumParent(item, [])
-        tree.matchSameNodeSum(from.children, path)
+        this.widgetProps.metrics.forEach((key)=>{
+          tree.matchSameNodeSum(from.children, key, path)
+        })
+        
       } else {
         while (item) {
           const callback = (item) => !item.sumEnd
           // 当item为 tagNode节点时 item.data = item.data
-          item.data = tree.getUnSumNodeReduceSum(item.children, callback) || item.data
+          if(this.widgetProps.metrics.includes(item.originKey)){
+            item[item.originKey] =  item[item.originKey]
+          } else {
+            this.widgetProps.metrics.forEach((key)=>{
+              item[key] =  tree.getUnSumNodeReduceSumMetrics(item.children, key, callback)
+            })
+          }
           item = item.parent
         }
         return
@@ -606,7 +639,7 @@ class MultiwayTree {
     })
   }
 
-  public matchSameNodeSum(currentQueue, path) {
+  public matchSameNodeSum(currentQueue, key, path) {
     let level = 0
     let needSumNodeGroup = []
     let currentLevelSumNode = currentQueue.find((item) => item.sumEnd) // 计算目标
@@ -620,8 +653,9 @@ class MultiwayTree {
         }
       })
       const callback = (item) => !item.sumEnd
-      currentLevelSumNode.data = tree.getUnSumNodeReduceSum(
+      currentLevelSumNode[key] = tree.getUnSumNodeReduceSumMetrics(
         needSumNodeGroup,
+        key,
         callback
       )
       level++
@@ -637,13 +671,19 @@ class MultiwayTree {
   }
 
   public getJson() {
-    this.widgetProps.metricNodeList.forEach((item) => {
-      let obj = {}
-      while (item.parent) {
-        obj[item.originKey] = item.type === 'metrics' ? item.data : item.value
-        item = item.parent
+    console.log(this.widgetProps.metricNodeList, 'this.widgetProps.metricNodeList')
+    this.widgetProps.metricNodeList.forEach((item, idx) => {
+      if(!(idx%(this.widgetProps.metrics.length))){
+        let obj = {}
+        while (item.parent) {
+          obj[item.originKey] = item.type === 'metrics' ? item[item.originKey] : item.value
+          item = item.parent
+        }
+        this.widgetProps.transformedWideTableList.push(obj)
+      } else {
+        let obj = this.widgetProps.transformedWideTableList[this.widgetProps.transformedWideTableList.length-1]
+        obj[item.originKey] = item[item.originKey]
       }
-      this.widgetProps.transformedWideTableList.push(obj)
     })
   }
 
