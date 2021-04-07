@@ -395,7 +395,6 @@ export function metricAxisLabelFormatter(value) {
 }
 
 export function getPivot(): IChartInfo {
-  console.log(pivotlibs, 'pivotlibs值')
   return pivotlibs.find((p) => p.id === PivotTypes.PivotTable)
 }
 

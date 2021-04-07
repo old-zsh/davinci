@@ -43,7 +43,6 @@ class TotalConfigModal extends React.PureComponent<ITotalConfigFormProps, ITotal
 
   public componentWillReceiveProps (nextProps: ITotalConfigFormProps) {
     const { totalConfig, form } = nextProps
-    console.log(totalConfig,fromJS(totalConfig).toJS(), 'totalConfig')
     if (totalConfig === this.props.totalConfig) { return }
    
     this.setState({
@@ -54,7 +53,6 @@ class TotalConfigModal extends React.PureComponent<ITotalConfigFormProps, ITotal
   }
 
   private onTotalTypeChange = (e) => {
-    console.log(e, 'e.target')
     const { localConfig } = this.state
     const selectedTotalType = e as TotalTypes
     const previousValues = this.props.form.getFieldsValue() as IFieldTotalConfig
@@ -77,7 +75,6 @@ class TotalConfigModal extends React.PureComponent<ITotalConfigFormProps, ITotal
     const { form, visualType } = this.props
     const { getFieldDecorator } = form
     const { localConfig } = this.state
-    console.log(localConfig,form,visualType, 'localConfig 3')
     const formatTypesGroup = TotalTypesSetting[visualType] && (
       <FormItem>
         {getFieldDecorator('totalType', {
@@ -325,7 +322,6 @@ class TotalConfigModal extends React.PureComponent<ITotalConfigFormProps, ITotal
     const { visible } = this.props
     const { localConfig } = this.state
     const { totalType } = localConfig
-    console.log(localConfig, 'localConfig')
     // const config = this.renderConfig(totalType)
     return (
       <Modal

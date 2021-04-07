@@ -157,7 +157,6 @@ interface IOperatingPanelProps {
   onChangeAutoLoadData: (e: RadioChangeEvent) => void
   onChangeSum: (e: RadioChangeEvent) => void
   onExpiredChange: (expired: number) => void
-  onSumTypeChange: (sumType: number) => void
   onSetComputed: (computesField: any[]) => void
   onDeleteComputed: (computesField: any[]) => void
   onSetWidgetProps: (widgetProps: IWidgetProps) => void
@@ -341,7 +340,6 @@ export class OperatingPanel extends React.Component<
         totalMetrics
       } = originalWidgetProps
       const { dataParams } = this.state
-      console.log(dataParams,originalWidgetProps, 'dataParams 初始化')
       const model = selectedView.model
       const currentWidgetlibs = widgetlibs[mode || 'pivot'] // FIXME 兼容 0.3.0-beta.1 之前版本
       if (mode === 'pivot') {
@@ -589,12 +587,10 @@ export class OperatingPanel extends React.Component<
     item: IDataParamSource,
     e: React.DragEvent<HTMLLIElement | HTMLParagraphElement>
   ) => {
-    console.log(item,e, 'insideDragStart 方法')
     this.dragStart({ ...item, from })(e)
   }
 
   private insideDragEnd = (dropType: DropType) => {
-    console.log(dropType, 'insideDragEndb 方法')
     if (!dropType) {
       const {
         dragged: { name, from },
@@ -697,7 +693,6 @@ export class OperatingPanel extends React.Component<
     changedItems: IDataParamSource[],
     config?: IDataParamConfig
   ) => {
-    console.log(name,dropIndex,dropType,changedItems, 'drop方法')
     const { multiDrag } = this.props
     const {
       dragged: stateDragged,
@@ -873,7 +868,6 @@ export class OperatingPanel extends React.Component<
   }
 
   private removeDropboxItem = (from: string) => (name: string) => () => {
-    console.log(name, 'removeDropboxItem 方法')
     const { dataParams, styleParams } = this.state
     const prop = dataParams[from]
     prop.items = prop.items.filter((i) => i.name !== name)
@@ -884,7 +878,6 @@ export class OperatingPanel extends React.Component<
     item: IDataParamSource,
     sortType: FieldSortTypes
   ) => {
-    console.log(from, 'currentEditingCommonParamKey 3')
     const { dataParams, styleParams } = this.state
     const prop = dataParams[from]
     if (sortType !== FieldSortTypes.Custom) {
@@ -911,7 +904,6 @@ export class OperatingPanel extends React.Component<
     item: IDataParamSource,
     agg: AggregatorType
   ) => {
-    console.log(item, 'getDropboxItemAggregator 方法')
     const { dataParams, styleParams } = this.state
     const prop = dataParams[from]
     item.agg = agg
@@ -922,7 +914,6 @@ export class OperatingPanel extends React.Component<
   private dropboxItemChangeFieldConfig = (from: string) => (
     item: IDataParamSource
   ) => {
-    console.log(from, 'currentEditingCommonParamKey')
     this.setState({
       currentEditingCommonParamKey: from,
       currentEditingItem: item,
@@ -956,7 +947,6 @@ export class OperatingPanel extends React.Component<
   private dropboxItemChangeFormatConfig = (from: string) => (
     item: IDataParamSource
   ) => {
-    console.log(from, 'currentEditingCommonParamKey 1')
     this.setState({
       currentEditingCommonParamKey: from,
       currentEditingItem: item,
@@ -967,7 +957,6 @@ export class OperatingPanel extends React.Component<
   private dropboxItemChangeTotal = (from: string) => (
     item: IDataParamSource
   ) => {
-    console.log(from,item, 'from')
     this.setState({
       currentEditingCommonParamKey: from,
       currentEditingItem: item,
@@ -982,7 +971,6 @@ export class OperatingPanel extends React.Component<
       dataParams,
       styleParams
     } = this.state
-    console.log(currentEditingCommonParamKey,dataParams, 'saveFormatConfig 值')
     const item = dataParams[currentEditingCommonParamKey].items.find(
       (i) => i.name === currentEditingItem.name
     )
@@ -1027,7 +1015,6 @@ export class OperatingPanel extends React.Component<
       dataParams,
       styleParams
     } = this.state
-    console.log(dataParams, currentEditingCommonParamKey,currentEditingItem,totalConfig, '设置的值')
     const item = dataParams[currentEditingCommonParamKey].items.find(
       (i) => i.name === currentEditingItem.name
     )
@@ -1104,7 +1091,6 @@ export class OperatingPanel extends React.Component<
     chart: IChartInfo
   ) => {
     const { dataParams } = this.state
-    console.log(this.state, 'this.state')
     item.chart = chart
     dataParams.metrics.items = [...dataParams.metrics.items]
     const selectedParams = this.getChartDataConfig(
@@ -1355,7 +1341,6 @@ export class OperatingPanel extends React.Component<
         (requestParamString == this.lastRequestParamString &&
           !dataParams.rows.items.length)) &&
       workbenchQueryMode === WorkbenchQueryMode.Immediately
-    console.log(mergedParams,dataParams,this.props, 'mergedParams')
     if (needRequest) {
       this.lastRequestParamString = requestParamString
       onLoadData(
@@ -1646,7 +1631,6 @@ export class OperatingPanel extends React.Component<
     key: string,
     value: string | number
   ) => {
-    console.log(key,value, 'dropboxValueChange 方法')
     const { mode, dataParams, styleParams } = this.state
     const { color, size } = dataParams
     switch (name) {
@@ -1986,7 +1970,6 @@ export class OperatingPanel extends React.Component<
       onChangeAutoLoadData,
       onChangeSum,
       onExpiredChange,
-      onSumTypeChange,
       onLoadColumnDistinctValue,
       onLoadViews,
       onLoadViewDetail,
@@ -2065,7 +2048,6 @@ export class OperatingPanel extends React.Component<
         <MenuItem key="computed">计算字段</MenuItem>
       </Menu>
     )
-    console.log(dataParams, 'dataParams dropboxes值')
     const dropboxes = Object.entries(dataParams).map(([k, v]) => {
       if (k === 'rows' && !showColsAndRows) {
         return
@@ -2442,26 +2424,6 @@ export class OperatingPanel extends React.Component<
                     </RadioGroup>
                   </Col>
                 </Row>
-              </div>
-            </div>
-            <div className={styles.paneBlock}>
-              <h4>总和类别 {sum}</h4>
-              <div className={styles.blockBody}>
-              <Checkbox.Group  style={{ width: '100%' }} value={ sumType }  disabled = { this.props.widgetProps.mode === "chart"} onChange={onSumTypeChange}>
-                <Row
-                  gutter={8}
-                  type="flex"
-                  align="middle"
-                  className={styles.blockRow}
-                >
-                  <Col span={10}>
-                    <Checkbox value={'sum'}  disabled={!sum} >总和</Checkbox>
-                  </Col>
-                  <Col span={10}>
-                    <Checkbox value={'subSum'}  disabled={!sum}>小计</Checkbox>
-                  </Col>
-                </Row>
-                </Checkbox.Group>
               </div>
             </div>
           </div>

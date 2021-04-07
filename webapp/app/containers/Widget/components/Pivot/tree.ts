@@ -8,13 +8,14 @@ class MultiwayTree {
     wideTableList: [],
     metrics: [],
     metricsAgg: [],
+    metricsTotal: {},
     colArray: [],
     rowArray: [],
     transformedWideTableList: [],
     metricNodeList: [],
     rowColConcat: [],
     rowLast: null,
-    colLast: null
+    colLast: null,
   }
   public pointOption = {
     treePointItem: [],
@@ -631,7 +632,6 @@ class MultiwayTree {
   }
 
   public calcSumNodeDFS() {
-    console.log(this.widgetProps.metricNodeList, tree, '设置的值')
     this.widgetProps.metricNodeList.forEach((item) => {
       if (item.sumEnd) {
         // origin初始值为tagSumNode,最终值为第一个parent为非sumNode,branchPath为tagSumNode路径
@@ -647,9 +647,10 @@ class MultiwayTree {
         }
         const { from, path } = getFirstNonSumParent(item, [])
         this.widgetProps.metrics.forEach((key)=>{
-          tree.matchSameNodeSum(from.children, key, path)
+          if(this.widgetProps.metricsTotal[item.originKey].includes(item.sumType)){
+            tree.matchSameNodeSum(from.children, key, path)
+          }
         })
-        
       } else {
         while (item) {
           const callback = (item) => !item.sumEnd
@@ -716,11 +717,12 @@ class MultiwayTree {
   }
 
   public initProps(options) {
-    const { metrics, rowGroup, colGroup, wideTableList, metricsAgg } = options
+    const { metrics: { metricsGroup }, rowGroup, colGroup, wideTableList, metricsAgg } = options
     this.widgetProps.rowColConcat = [...colGroup, ...rowGroup]
     this.widgetProps.rowColConcat.pop()
     this.widgetProps.rowColConcat.push(...this.labelText.rootKey)
-    this.widgetProps.metrics = metrics
+    this.widgetProps.metrics = Object.keys(metricsGroup) || []
+    this.widgetProps.metricsTotal = metricsGroup
     this.widgetProps.metricsAgg  = metricsAgg
     this.widgetProps.rowArray = colGroup
     this.widgetProps.colArray = rowGroup
@@ -739,7 +741,6 @@ class MultiwayTree {
     tree.getMetricNodeList()
     tree.calcSumNodeDFS()
     tree.getJson()
-    console.log(tree, 'tree')
     return tree
   }
 }

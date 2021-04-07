@@ -134,7 +134,6 @@ export class Pivot extends React.PureComponent<IPivotProps, IPivotStates> {
   public columnFooter: HTMLElement = null
 
   public componentWillMount() {
-    console.log(this.props, 'this.props')
     this.getRenderData(this.props)
   }
 
@@ -241,7 +240,7 @@ export class Pivot extends React.PureComponent<IPivotProps, IPivotStates> {
       return rowKeys
     }
     const getPartGroupByKey = (divideGroupByLevel, index) => {
-      while(index <= Math.max(rows.length - 2, 0)){
+      while (index <= Math.max(rows.length - 2, 0)) {
         divideGroupByLevel = iteration(divideGroupByLevel, index)
         index++
       }
@@ -249,7 +248,7 @@ export class Pivot extends React.PureComponent<IPivotProps, IPivotStates> {
     }
     const result = getPartGroupByKey(this.rowKeys, 0)
     const flatItem = (group) => {
-      while(!group[0].every((d) => !Array.isArray(d))){
+      while (!group[0].every((d) => !Array.isArray(d))) {
         group = group.reduce((pre, cur) => {
           return (pre = [...pre, ...cur])
         }, [])
@@ -259,31 +258,17 @@ export class Pivot extends React.PureComponent<IPivotProps, IPivotStates> {
     this.rowKeys = flatItem(result)
   }
   private getSumRowAndColKeys(keys, props) {
-    const { sumType } = props
-  
+    const { sum } = props
     return keys.reduce((group, keys) => {
       let isNoramlNode = keys.every(
         (k: string) => !['总和', '合计'].includes(k)
       )
-      let isSumNode = keys.some((k: string) => k == '总和')
-      let isSubSumNode = keys.some((k: string) => k == '合计')
-      if (isNoramlNode) {
-        return (group = [...group, keys])
-      } else {
-        if (
-          (sumType.includes('sum') && isSumNode) ||
-          (sumType.includes('subSum') && isSubSumNode)
-        ) {
-          return (group = [...group, keys])
-        } else {
-          return (group = group)
-        }
-      }
+      return (group = isNoramlNode || sum ? [...group, keys] : group)
     }, [])
   }
 
-  private makeOriginJson = (data, rowArray, colArray, tagGroup) => {
-    const rowOrder = [...colArray, ...rowArray, ...tagGroup]
+  private makeOriginJson = (data, rowArray, colArray, metricsGroup) => {
+    const rowOrder = [...colArray, ...rowArray, ...Object.keys(metricsGroup)]
     return data.reduce((pre, cur) => {
       const newObj = {}
       rowOrder.forEach((key) => {
@@ -296,25 +281,28 @@ export class Pivot extends React.PureComponent<IPivotProps, IPivotStates> {
   public setOriginOption(props) {
     const { sum, sumType, rows, cols, metrics, data } = props
     const rowGroup = rows && rows.map((item) => `${item.name}_rows`)
-    const colGroup = cols && cols.reduce((col, item) => {
-      const repeatGroup = col.filter((item) => item === `${item.name}_cols`)
-      const colItem = repeatGroup.length ? repeatGroup.length : ''
-      col = [...col, `${item.name}_cols${colItem}`]
-      return col
-    }, [])
-    const metricsAgg = metrics.map((l)=>l.agg)
+    const colGroup =
+      cols &&
+      cols.reduce((col, item) => {
+        const repeatGroup = col.filter((item) => item === `${item.name}_cols`)
+        const colItem = repeatGroup.length ? repeatGroup.length : ''
+        col = [...col, `${item.name}_cols${colItem}`]
+        return col
+      }, [])
+    const metricsAgg = metrics.map((l) => l.agg)
     const metricsItems = metrics[0]
-    let metricsName
-    if(metricsItems){
-      metricsName = metrics.map((item)=>{
-        return `${item.agg}(${
-          item.name.split('@')[0]
-        })`
-      })
+    let metricsGroup = {}
+    if (metricsItems) {
+      metricsGroup = metrics.reduce((result, item) => {
+        result[`${item.agg}(${item.name.split('@')[0]})`] = item.total.totalType
+        return result
+      }, metricsGroup)
     }
 
     const setOriginJsonByKey = (list) => {
-      const concatRowCol = metricsName.length ? [...colGroup, ...rowGroup, ...metricsName]: [...colGroup, ...rowGroup]
+      const concatRowCol = metricsGroup
+        ? [...colGroup, ...rowGroup, ...Object.keys(metricsGroup)]
+        : [...colGroup, ...rowGroup]
       const wideList = list.reduce((pre, cur) => {
         cur = concatRowCol.reduce((obj, key) => {
           obj[key] = cur[replaceRowColPrx(key)]
@@ -325,14 +313,16 @@ export class Pivot extends React.PureComponent<IPivotProps, IPivotStates> {
       return wideList
     }
     const wideTableList = setOriginJsonByKey(data)
+
     const options = {
       metricsAgg,
-      metrics: metricsName,
+      metrics: {
+        metricsGroup
+      },
       rowGroup,
       colGroup,
       wideTableList
     }
-    console.log(props.metrics, 'metrics')
     const {
       widgetProps: { transformedWideTableList }
     } = tree.getCompluteJson(options)
@@ -340,9 +330,8 @@ export class Pivot extends React.PureComponent<IPivotProps, IPivotStates> {
       transformedWideTableList,
       rowGroup,
       colGroup,
-      metricsName,
+      metricsGroup
     )
-    console.log(resultList, 'resultList')
     return resultList
   }
   private getRemoveSuffixData = (props) => {
@@ -352,9 +341,9 @@ export class Pivot extends React.PureComponent<IPivotProps, IPivotStates> {
     }
     data.reduce((data, item) => {
       let groups = cols
-      .map((c) => `${c.name}_cols`)
-      .concat(rows.map((r) => `${r.name}_rows`))
-      .filter((g) => g !== '指标名称')
+        .map((c) => `${c.name}_cols`)
+        .concat(rows.map((r) => `${r.name}_rows`))
+        .filter((g) => g !== '指标名称')
       item = groups.reduce((obj, key) => {
         obj[key] = item[removeRowColPrx(key)]
         return obj
@@ -373,27 +362,25 @@ export class Pivot extends React.PureComponent<IPivotProps, IPivotStates> {
       xAxis,
       dimetionAxis
     } = props
-   
-
-    if(data.length){
-
+    if (data.length && metrics.length) {
       data = this.setOriginOption(props)
-      console.log(data,props, 'data的值')
     }
-
     this.rowHeaderWidths = rows.map((r) => getPivotContentTextWidth(r, 'bold'))
     if (!cols.length && !rows.length) {
       this.tree[0] = data.slice()
     } else {
-      this.getRemoveSuffixData(props)
+      if (metrics.length) {
+        this.getRemoveSuffixData(props)
+      }
       data.forEach((record) => {
         this.getRowKeyAndColKey(props, record, !!dimetionAxis)
       })
-      // this.rowKeys = this.getSumRowAndColKeys(this.rowKeys, props)
-      // this.colKeys = this.getSumRowAndColKeys(this.colKeys, props)
-      console.log(this.rowKeys,this.colKeys, '设置的值')
-      if (this.rowKeys.length > 1) {
-        this.getSortSumNode(rows)
+      if (metrics.length) {
+        this.rowKeys = this.getSumRowAndColKeys(this.rowKeys, props)
+        this.colKeys = this.getSumRowAndColKeys(this.colKeys, props)
+        if (this.rowKeys.length > 1) {
+          this.getSortSumNode(rows)
+        }
       }
     }
 

@@ -624,6 +624,7 @@ export class Workbench extends React.Component<
   }
 
   private changeSum = (e) => {
+    console.log(e,e.target.value, '设置的值')
     this.setState({
       sum: e.target.value,
     })
@@ -760,7 +761,6 @@ export class Workbench extends React.Component<
                 onLimitChange={this.limitChange}
                 onCacheChange={this.cacheChange}
                 onExpiredChange={this.expiredChange}
-                onSumTypeChange={this.sumTypeChange}
                 onSetWidgetProps={this.setWidgetProps}
                 onSetComputed={this.setComputed}
                 onDeleteComputed={this.deleteComputed}
