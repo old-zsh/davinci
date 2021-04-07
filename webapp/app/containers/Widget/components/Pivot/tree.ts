@@ -7,6 +7,7 @@ class MultiwayTree {
     root: null,
     wideTableList: [],
     metrics: [],
+    metricsAgg: [],
     colArray: [],
     rowArray: [],
     transformedWideTableList: [],
@@ -38,6 +39,7 @@ class MultiwayTree {
     sumText: '总和',
     subSumText: '合计'
   }
+
 
   constructor() {}
   public traverseBF(callback) {
@@ -265,6 +267,23 @@ class MultiwayTree {
     return tree.getFirstNotSum(node)
   }
 
+  public getMetricsNodeSumOrSubSumType(node){
+    if (!node.sumEnd) {
+      return 'normal'
+    }
+    if (this.labelText.sumConcat.includes(node.value)) {
+      if(node.value == this.labelText.sumText && node.type === 'col'){
+        return 'colTotal'
+      } else if(node.value == this.labelText.sumText && node.type === 'row'){
+        return 'rowTotal'
+      } else {
+        return 'subTotal'
+      }
+    }
+    node = node.parent
+    return tree.getMetricsNodeSumOrSubSumType(node)
+  }
+
   // 获取分支集合 总计和小计两部分
   public getPartBranch(parentNode) {
     const backParent = cloneDeep(parentNode)
@@ -373,6 +392,9 @@ class MultiwayTree {
     }
   }
 
+  public getSumMetricsNodeType(){
+
+  }
   public getColArrayFirstParent(node) {
     while (node.originKey !== this.widgetProps.colArray[0]) {
       node = node.parent
@@ -414,6 +436,7 @@ class MultiwayTree {
         break
       case 'value':
         newNode[key] = tree.decideSumOrSubSumTextDisplay(options)
+        newNode.sumType = tree.getMetricsNodeSumOrSubSumType(parentNode)
         break
       case 'children':
         newNode[key] = tree.copyIteration(
@@ -427,7 +450,6 @@ class MultiwayTree {
         newNode[key] = null
     }
   }
-  // 判断总和和合计文字显示
   public decideSumOrSubSumTextDisplay(options) {
     const { nodeValue, isLastSumNode, parentNode, newNode } = options
     const { subSumText, sumText } = this.labelText
@@ -452,9 +474,9 @@ class MultiwayTree {
         [...this.widgetProps.colArray].includes(parentNode.originKey) &&
         tree.getColArrayFirstParent(parentNode).sumLastEnd) ||
       (isParentRowLast && isLastSumNode && this.widgetProps.colArray.length)
-    const isSubSumText = isLastSumNode && !isQuotaSum(nodeValue)
+    const isSubSumText = isLastSumNode && !isQuotaSum(nodeValue,this.widgetProps.metricsAgg)
     if (isRowSumText || isColSumText || isColStartSumText) {
-      return sumText
+      return sumText 
     } else if (isSubSumText) {
       return subSumText
     } else {
@@ -462,6 +484,12 @@ class MultiwayTree {
     }
   }
 
+  public getMetricNodeSubSumOrSumType(node){
+    const iteration = (node) => {
+      if(this.labelText.sumConcat.includes(node.value)) return node.value 
+    }
+    iteration(node)
+  }
   public copyIteration(
     deepCopy,
     currentNode,
@@ -603,6 +631,7 @@ class MultiwayTree {
   }
 
   public calcSumNodeDFS() {
+    console.log(this.widgetProps.metricNodeList, tree, '设置的值')
     this.widgetProps.metricNodeList.forEach((item) => {
       if (item.sumEnd) {
         // origin初始值为tagSumNode,最终值为第一个parent为非sumNode,branchPath为tagSumNode路径
@@ -671,7 +700,6 @@ class MultiwayTree {
   }
 
   public getJson() {
-    console.log(this.widgetProps.metricNodeList, 'this.widgetProps.metricNodeList')
     this.widgetProps.metricNodeList.forEach((item, idx) => {
       if(!(idx%(this.widgetProps.metrics.length))){
         let obj = {}
@@ -688,11 +716,12 @@ class MultiwayTree {
   }
 
   public initProps(options) {
-    const { metrics, rowGroup, colGroup, wideTableList } = options
+    const { metrics, rowGroup, colGroup, wideTableList, metricsAgg } = options
     this.widgetProps.rowColConcat = [...colGroup, ...rowGroup]
     this.widgetProps.rowColConcat.pop()
     this.widgetProps.rowColConcat.push(...this.labelText.rootKey)
     this.widgetProps.metrics = metrics
+    this.widgetProps.metricsAgg  = metricsAgg
     this.widgetProps.rowArray = colGroup
     this.widgetProps.colArray = rowGroup
     this.widgetProps.wideTableList = wideTableList
@@ -706,7 +735,6 @@ class MultiwayTree {
   public getCompluteJson(options) {
     tree.initProps(options)
     tree.setTree()
-    debugger
     tree.addTotal()
     tree.getMetricNodeList()
     tree.calcSumNodeDFS()

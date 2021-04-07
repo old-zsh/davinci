@@ -36,6 +36,11 @@ import {
   FormatConfigModal
 } from '../Config/Format'
 import {
+  IFieldTotalConfig,
+  getDefaultTotalConfig,
+  TotalConfigModal
+} from '../Config/Total'
+import {
   IFieldSortConfig,
   FieldSortTypes,
   SortConfigModal
@@ -197,14 +202,14 @@ interface IOperatingPanelStates {
 
   formatModalVisible: boolean
   sortModalVisible: boolean
-
+  
   colorModalVisible: boolean
   actOnModalVisible: boolean
   actOnModalList: IDataParamSource[]
   filterModalVisible: boolean
   controlConfigVisible: boolean
   referenceConfigVisible: boolean
-
+  totalModalVisible: boolean
   categoryDragItems: IDragItem[]
   valueDragItems: IDragItem[]
 
@@ -242,6 +247,7 @@ export class OperatingPanel extends React.Component<
       currentEditingItem: null,
       fieldModalVisible: false,
       formatModalVisible: false,
+      totalModalVisible: false,
       sortModalVisible: false,
       colorModalVisible: false,
       actOnModalVisible: false,
@@ -336,7 +342,6 @@ export class OperatingPanel extends React.Component<
       } = originalWidgetProps
       const { dataParams } = this.state
       console.log(dataParams,originalWidgetProps, 'dataParams 初始化')
-      debugger
       const model = selectedView.model
       const currentWidgetlibs = widgetlibs[mode || 'pivot'] // FIXME 兼容 0.3.0-beta.1 之前版本
       if (mode === 'pivot') {
@@ -879,7 +884,7 @@ export class OperatingPanel extends React.Component<
     item: IDataParamSource,
     sortType: FieldSortTypes
   ) => {
-    console.log(item,sortType, 'getDropboxItemSortDirection 方法')
+    console.log(from, 'currentEditingCommonParamKey 3')
     const { dataParams, styleParams } = this.state
     const prop = dataParams[from]
     if (sortType !== FieldSortTypes.Custom) {
@@ -917,6 +922,7 @@ export class OperatingPanel extends React.Component<
   private dropboxItemChangeFieldConfig = (from: string) => (
     item: IDataParamSource
   ) => {
+    console.log(from, 'currentEditingCommonParamKey')
     this.setState({
       currentEditingCommonParamKey: from,
       currentEditingItem: item,
@@ -950,10 +956,22 @@ export class OperatingPanel extends React.Component<
   private dropboxItemChangeFormatConfig = (from: string) => (
     item: IDataParamSource
   ) => {
+    console.log(from, 'currentEditingCommonParamKey 1')
     this.setState({
       currentEditingCommonParamKey: from,
       currentEditingItem: item,
       formatModalVisible: true
+    })
+  }
+  
+  private dropboxItemChangeTotal = (from: string) => (
+    item: IDataParamSource
+  ) => {
+    console.log(from,item, 'from')
+    this.setState({
+      currentEditingCommonParamKey: from,
+      currentEditingItem: item,
+      totalModalVisible: true
     })
   }
 
@@ -964,6 +982,7 @@ export class OperatingPanel extends React.Component<
       dataParams,
       styleParams
     } = this.state
+    console.log(currentEditingCommonParamKey,dataParams, 'saveFormatConfig 值')
     const item = dataParams[currentEditingCommonParamKey].items.find(
       (i) => i.name === currentEditingItem.name
     )
@@ -999,6 +1018,30 @@ export class OperatingPanel extends React.Component<
 
   private cancelSortConfig = () => {
     this.setState({ sortModalVisible: false })
+  }
+
+  private saveTotalConfig = (totalConfig: IFieldTotalConfig) => {
+    const {
+      currentEditingCommonParamKey,
+      currentEditingItem,
+      dataParams,
+      styleParams
+    } = this.state
+    console.log(dataParams, currentEditingCommonParamKey,currentEditingItem,totalConfig, '设置的值')
+    const item = dataParams[currentEditingCommonParamKey].items.find(
+      (i) => i.name === currentEditingItem.name
+    )
+    item.total = totalConfig
+    this.setWidgetProps(dataParams, styleParams)
+    this.setState({
+      totalModalVisible: false
+    })
+  }
+
+  private cancelTotalConfig = () => {
+    this.setState({
+      totalModalVisible: false
+    })
   }
 
   private dropboxItemChangeColorConfig = (item: IDataParamSource) => {
@@ -1349,7 +1392,8 @@ export class OperatingPanel extends React.Component<
               agg: item.agg || 'sum',
               chart: item.chart || getPivot(),
               field: item.field || getDefaultFieldConfig(),
-              format: item.format || getDefaultFieldFormatConfig()
+              format: item.format || getDefaultFieldFormatConfig(),
+              total: item.total || getDefaultTotalConfig()
             })),
             ...(secondaryMetrics && {
               secondaryMetrics: secondaryMetrics.items.map((item) => ({
@@ -1357,7 +1401,8 @@ export class OperatingPanel extends React.Component<
                 agg: item.agg || 'sum',
                 chart: item.chart || getPivot(),
                 field: item.field || getDefaultFieldConfig(),
-                format: item.format || getDefaultFieldFormatConfig()
+                format: item.format || getDefaultFieldFormatConfig(),
+                total: item.total || getDefaultTotalConfig()
               }))
             }),
             filters: filters.items.map(({ name, type, config }) => ({
@@ -1430,7 +1475,8 @@ export class OperatingPanel extends React.Component<
           agg: item.agg || 'sum',
           chart: item.chart || getPivot(),
           field: item.field || getDefaultFieldConfig(),
-          format: item.format || getDefaultFieldFormatConfig()
+          format: item.format || getDefaultFieldFormatConfig(),
+          total: item.total || getDefaultTotalConfig()
         })),
         ...(secondaryMetrics && {
           secondaryMetrics: secondaryMetrics.items.map((item) => ({
@@ -1438,7 +1484,8 @@ export class OperatingPanel extends React.Component<
             agg: item.agg || 'sum',
             chart: item.chart || getPivot(),
             field: item.field || getDefaultFieldConfig(),
-            format: item.format || getDefaultFieldFormatConfig()
+            format: item.format || getDefaultFieldFormatConfig(),
+            total: item.total || getDefaultTotalConfig()
           }))
         }),
         filters: filters.items.map(({ name, type, config }) => ({
@@ -1959,6 +2006,7 @@ export class OperatingPanel extends React.Component<
       distinctColumnValues,
       fieldModalVisible,
       formatModalVisible,
+      totalModalVisible,
       sortModalVisible,
       currentEditingItem,
       colorModalVisible,
@@ -2012,46 +2060,6 @@ export class OperatingPanel extends React.Component<
       })
     }
 
-    const dropBoxItem = (k) => {
-      console.log(dataParams, 'dataParams')
-      const v = dataParams[k]
-      if (k === 'rows' && !showColsAndRows) {
-        return
-      }
-      if (k === 'cols') {
-        v.title = showColsAndRows ? '列' : '维度'
-      }
-      let panelList = []
-      if (k === 'color') {
-        panelList = metrics.items
-      }
-      if (k === 'size') {
-        panelList = v.items
-      }
-      return (
-        <Dropbox
-          key={k}
-          name={k}
-          title={v.title}
-          type={v.type}
-          value={v.value}
-          items={v.items}
-          mode={mode}
-          selectedChartId={chartModeSelectedChart.id}
-          dragged={dragged}
-          panelList={panelList}
-          dimetionsCount={dimetionsCount}
-          metricsCount={metricsCount}
-          onValueChange={this.dropboxValueChange(k)}
-          onItemDragStart={this.insideDragStart(k)}
-          onItemDragEnd={this.insideDragEnd}
-          onItemRemove={this.removeDropboxItem(k)}
-          beforeDrop={this.beforeDrop}
-          onDrop={this.drop}
-        />
-      )
-    }
-
     const coustomFieldSelectMenu = (
       <Menu onClick={this.coustomFieldSelect}>
         <MenuItem key="computed">计算字段</MenuItem>
@@ -2096,6 +2104,7 @@ export class OperatingPanel extends React.Component<
           onItemChangeFormatConfig={this.dropboxItemChangeFormatConfig(k)}
           onItemChangeColorConfig={this.dropboxItemChangeColorConfig}
           onItemChangeFilterConfig={this.dropboxItemChangeFilterConfig}
+          onItemChangeTotal={this.dropboxItemChangeTotal(k)}
           onItemChangeChart={this.getDropboxItemChart}
           beforeDrop={this.beforeDrop}
           onDrop={this.drop}
@@ -2410,12 +2419,6 @@ export class OperatingPanel extends React.Component<
                     </RadioGroup>
                   </Col>
                 </Row>
-              </div>
-            </div>
-            <div className={styles.paneBlock}>
-              <h4>总和指标</h4>
-              <div className={styles.blockBody}>
-                {dropBoxItem('total')}
               </div>
             </div>
             <div className={styles.paneBlock}>
@@ -2777,6 +2780,14 @@ export class OperatingPanel extends React.Component<
                 list={distinctColumnValues}
                 onSave={this.saveSortConfig}
                 onCancel={this.cancelSortConfig}
+              />,
+              <TotalConfigModal
+                key="totalConfigModal"
+                visible={totalModalVisible}
+                visualType={currentEditingItem.visualType}
+                totalConfig={currentEditingItem.total}
+                onSave={this.saveTotalConfig}
+                onCancel={this.cancelTotalConfig}
               />
             ]}
         <Modal

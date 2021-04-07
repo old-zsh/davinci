@@ -1,11 +1,3 @@
-/*
- * @Author: your name
- * @Date: 2020-08-19 21:59:57
- * @LastEditTime: 2021-03-31 15:01:48
- * @LastEditors: your name
- * @Description: In User Settings Edit
- * @FilePath: /davinci-fork/davinci/webapp/app/containers/Widget/config/pivot/pivot.ts
- */
 import PivotTypes from './PivotTypes'
 import {
   PIVOT_DEFAULT_AXIS_LINE_COLOR,
@@ -43,10 +35,6 @@ const pivot: IChartInfo = {
     color: {
       title: '颜色',
       type: 'category'
-    },
-    total: {
-      title: '总计',
-      type: 'value'
     }
   },
   style: {

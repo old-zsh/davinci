@@ -5,6 +5,7 @@ import Sort from './Sort'
 import Format from './Format'
 import Color from './Color'
 import Filters from './Filters'
+import Total from './Total'
 
 import { ViewModelTypes, ViewModelVisualTypes } from 'containers/View/constants'
 import ChartTypes from 'containers/Widget/config/chart/ChartTypes'
@@ -13,9 +14,9 @@ import { SettingTypes, ItemTypes, ItemValueTypes } from './types'
 import { Menu } from 'antd'
 const { Item: MenuItem, SubMenu, Divider: MenuDivider } = Menu
 
-const SettingsList = [...Aggregator, Format, Field, ...Sort, Filters, Color]
+const SettingsList = [...Aggregator, Format, Field, Total, ...Sort, Filters, Color]
 
-export function getSettingKeyByDropItem (itemKey: string): 'aggregator' | 'field' | 'sort' | 'format' | 'color' | 'filters' | 'tip' {
+export function getSettingKeyByDropItem (itemKey: string): 'aggregator' | 'field' |'total'| 'sort' | 'format' | 'color' | 'filters' | 'tip' {
   let settingKey
   SettingsList.some((s) => {
     const exists = s.items.some((item) => !!item[itemKey])

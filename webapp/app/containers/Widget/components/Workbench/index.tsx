@@ -785,12 +785,12 @@ export class Workbench extends React.Component<
               </div>
             </SplitPane>
           </Suspense>
-          {/* <WorkbenchSettingForm
+          <WorkbenchSettingForm
             visible={settingFormVisible}
             settings={settings}
             onSave={this.saveSettingForm}
             onClose={this.closeSettingForm}
-          /> */}
+          />
         </div>
       </div>
     )

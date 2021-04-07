@@ -1,12 +1,4 @@
 /*
- * @Author: your name
- * @Date: 2020-08-19 21:59:57
- * @LastEditTime: 2021-03-15 17:40:40
- * @LastEditors: your name
- * @Description: In User Settings Edit
- * @FilePath: /davinci-fork/davinci/webapp/app/components/FullScreenPanel/Chart.tsx
- */
-/*
  * <<
  * Davinci
  * ==

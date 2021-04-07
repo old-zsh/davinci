@@ -9,6 +9,7 @@ import SizePanel from '../SizePanel'
 import { IChartInfo, WidgetMode } from '../../Widget'
 import { IFieldConfig } from '../../Config/Field'
 import { IFieldFormatConfig } from '../../Config/Format'
+import { IFieldTotalConfig } from '../../Config/Total'
 import { IFieldSortConfig, FieldSortTypes } from '../../Config/Sort'
 import { decodeMetricName } from '../../util'
 import { Popover, Icon } from 'antd'
@@ -29,6 +30,7 @@ interface IDataColumn {
   agg?: AggregatorType
   field?: IFieldConfig
   format?: IFieldFormatConfig
+  total?: IFieldTotalConfig
 }
 
 export interface IDataParamSource extends IDataColumn {
@@ -86,6 +88,7 @@ interface IDropboxProps {
   onItemChangeFilterConfig: (item: IDataParamSource) => void
   onItemChangeFieldConfig: (item: IDataParamSource) => void
   onItemChangeFormatConfig: (item: IDataParamSource) => void
+  onItemChangeTotal: (item: IDataParamSource) => void
   onItemChangeChart: (item: IDataParamSource) => (chart: IChartInfo) => void
   beforeDrop: (name: string, cachedItem: IDataParamSource, resolve: (next: boolean) => void) => void
   onDrop: (name: string, dropIndex: number, dropType: DropType, changedItems: IDataParamSource[], config?: IDataParamConfig) => void
@@ -289,6 +292,7 @@ export class Dropbox extends React.PureComponent<IDropboxProps, IDropboxStates> 
       onItemChangeFilterConfig,
       onItemChangeFieldConfig,
       onItemChangeFormatConfig,
+      onItemChangeTotal,
       onItemChangeChart,
       onItemRemove
     } = this.props
@@ -374,6 +378,7 @@ export class Dropbox extends React.PureComponent<IDropboxProps, IDropboxStates> 
           onChangeFormatConfig={onItemChangeFormatConfig}
           onChangeColorConfig={onItemChangeColorConfig}
           onChangeFilterConfig={onItemChangeFilterConfig}
+          onChangeTotal={onItemChangeTotal}
           onChangeChart={onItemChangeChart}
           onRemove={onItemRemove(item.name)}
         />

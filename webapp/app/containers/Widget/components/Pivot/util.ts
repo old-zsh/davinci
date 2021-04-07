@@ -1,6 +1,7 @@
 export function getOriginKey(key) {
   return key.match(/\S*(?=\_)/g).shift()
 }
+
 export function isSumLastNode(key) {
   return /\_(?<=)\d*sumlast/g.test(key)
 }
@@ -19,6 +20,9 @@ export function replaceRowColPrx(key){
 //     return reg.test(key)
 //   })
 // }
-export function isQuotaSum(key) {
-  return /(sum\()(?<=)(\W*)/g.test(key)
+export function isQuotaSum(key, aggs) {
+  return aggs.some((item) => {
+        const reg = RegExp('(' + item + '()(?<=)(\W*))', 'i')
+        return reg.test(key)
+      })
 }

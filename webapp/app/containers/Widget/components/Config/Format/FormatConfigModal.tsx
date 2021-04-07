@@ -43,7 +43,9 @@ class FormatConfigForm extends React.PureComponent<IFormatConfigFormProps, IForm
 
   public componentWillReceiveProps (nextProps: IFormatConfigFormProps) {
     const { formatConfig, form } = nextProps
+    console.log(formatConfig,this.props.formatConfig, 'formatConfig 1')
     if (formatConfig === this.props.formatConfig) { return }
+    console.log(formatConfig,this.props.formatConfig, 'formatConfig 2')
     this.setState({
       localConfig: formatConfig ? fromJS(formatConfig).toJS() : getDefaultFieldFormatConfig()
     }, () => {
@@ -74,6 +76,7 @@ class FormatConfigForm extends React.PureComponent<IFormatConfigFormProps, IForm
     const { form, visualType } = this.props
     const { getFieldDecorator } = form
     const { localConfig } = this.state
+    console.log(localConfig, 'localConfig 2')
     const formatTypesGroup = FieldFormatTypesSetting[visualType] && (
       <FormItem>
         {getFieldDecorator('formatType', {
@@ -285,7 +288,7 @@ class FormatConfigForm extends React.PureComponent<IFormatConfigFormProps, IForm
     const { form } = this.props
     form.validateFieldsAndScroll((err, fieldsValues) => {
       if (err) { return }
-
+      debugger
       const formatType = fieldsValues['formatType']
       const config: IFieldFormatConfig = {
         formatType

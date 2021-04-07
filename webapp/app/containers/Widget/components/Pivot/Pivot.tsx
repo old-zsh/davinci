@@ -134,6 +134,7 @@ export class Pivot extends React.PureComponent<IPivotProps, IPivotStates> {
   public columnFooter: HTMLElement = null
 
   public componentWillMount() {
+    console.log(this.props, 'this.props')
     this.getRenderData(this.props)
   }
 
@@ -259,6 +260,7 @@ export class Pivot extends React.PureComponent<IPivotProps, IPivotStates> {
   }
   private getSumRowAndColKeys(keys, props) {
     const { sumType } = props
+  
     return keys.reduce((group, keys) => {
       let isNoramlNode = keys.every(
         (k: string) => !['总和', '合计'].includes(k)
@@ -300,6 +302,7 @@ export class Pivot extends React.PureComponent<IPivotProps, IPivotStates> {
       col = [...col, `${item.name}_cols${colItem}`]
       return col
     }, [])
+    const metricsAgg = metrics.map((l)=>l.agg)
     const metricsItems = metrics[0]
     let metricsName
     if(metricsItems){
@@ -323,11 +326,13 @@ export class Pivot extends React.PureComponent<IPivotProps, IPivotStates> {
     }
     const wideTableList = setOriginJsonByKey(data)
     const options = {
+      metricsAgg,
       metrics: metricsName,
       rowGroup,
       colGroup,
       wideTableList
     }
+    console.log(props.metrics, 'metrics')
     const {
       widgetProps: { transformedWideTableList }
     } = tree.getCompluteJson(options)
@@ -337,6 +342,7 @@ export class Pivot extends React.PureComponent<IPivotProps, IPivotStates> {
       colGroup,
       metricsName,
     )
+    console.log(resultList, 'resultList')
     return resultList
   }
   private getRemoveSuffixData = (props) => {
@@ -370,7 +376,9 @@ export class Pivot extends React.PureComponent<IPivotProps, IPivotStates> {
    
 
     if(data.length){
+
       data = this.setOriginOption(props)
+      console.log(data,props, 'data的值')
     }
 
     this.rowHeaderWidths = rows.map((r) => getPivotContentTextWidth(r, 'bold'))
@@ -381,8 +389,9 @@ export class Pivot extends React.PureComponent<IPivotProps, IPivotStates> {
       data.forEach((record) => {
         this.getRowKeyAndColKey(props, record, !!dimetionAxis)
       })
-      this.rowKeys = this.getSumRowAndColKeys(this.rowKeys, props)
-      this.colKeys = this.getSumRowAndColKeys(this.colKeys, props)
+      // this.rowKeys = this.getSumRowAndColKeys(this.rowKeys, props)
+      // this.colKeys = this.getSumRowAndColKeys(this.colKeys, props)
+      console.log(this.rowKeys,this.colKeys, '设置的值')
       if (this.rowKeys.length > 1) {
         this.getSortSumNode(rows)
       }
