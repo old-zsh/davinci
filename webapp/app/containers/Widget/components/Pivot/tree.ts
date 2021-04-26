@@ -58,7 +58,7 @@ class MultiwayTree {
     }
   }
 
-  constructor() {}
+  constructor() { }
 
   public getTraverseBF(callback) {
     const queue = []
@@ -143,48 +143,29 @@ class MultiwayTree {
 
   private getParentIdByMetrics(
     attrMap,
-    levelCount,
     key,
-    listItem,
-    rowArray,
-    colArray,
-    type,treeNodeGroup
+    treeNodeGroup,
+    options,
+    number?
   ) {
-    const metricsPreNode = [...rowArray, ...colArray]
-    const preLevel = type
+    const { levelCount, levelKey, listItem } = options
+    const preLevel = tree.getNodeLevelType(levelKey) == CategoryType.Metrics
       ? this.tree.wideProps.colLast
       : Object.keys(attrMap)[levelCount - 1]
-    
+
     const parentItem = attrMap[preLevel].find((item) => {
-      return item.nameLabel == key || item.label == key
-    }) || treeNodeGroup[treeNodeGroup.length - 1].key
+      
+      if(number && attrMap[preLevel].length == this.tree.wideProps.metricsAgg.length * 2){
+        const prex = item.key.split('_').pop()
+        return item.nameLabel == key && number == prex || item.label == key
+      } else {
+        return item.nameLabel == key || item.label == key
+      }
+      
+    }) || treeNodeGroup[treeNodeGroup.length - 1]
     return parentItem.key
   }
-  private getParentIdByMetricss(
-    attrMap,
-    levelCount,
-    key,
-    listItem,
-    rowArray,
-    colArray,
-    type
-  ) {
-    const metricsPreNode = [...rowArray, ...colArray]
-    const preLevel = type
-      ? this.tree.wideProps.colLast
-      : Object.keys(attrMap)[levelCount - 1]
 
-    let queue = [...attrMap[preLevel]]
-
-    while (!queue.find((item) => item.label == key)) {
-      queue = attrMap[getOriginKey(queue[0].parentKey)]
-    }
-
-    const parentItem = queue.find((item) => {
-      return item.label == key
-    })
-    return parentItem.key
-  }
 
   public getNodeLevelType(levelKey) {
     const { rootRowArray, colArray } = this.tree.wideProps
@@ -208,7 +189,7 @@ class MultiwayTree {
   }
 
   public getNodeKey(options) {
-    const { listNumber, levelCount, levelKey, listItem, metricsItemName, metricsCount } = options
+    const { listNumber, levelCount, levelKey, listItem, metricsItemName, metricsCount, metricsCountSecond } = options
     if (!listNumber) {
       options.samePathNode = null
     } else if (!levelCount) {
@@ -243,27 +224,40 @@ class MultiwayTree {
     const { samePathNode } = options
     const initKey = `${levelKey}_${listNumber}`
     const nodeKey = samePathNode ? samePathNode.key : initKey
-    if(metricsItemName){
-      return samePathNode ? `${nodeKey}` : `${nodeKey}${metricsCount}`
+    if (metricsItemName) {
+      return samePathNode ? `${nodeKey}` : metricsCountSecond ? `${nodeKey}${metricsCount}${metricsCountSecond}`:`${nodeKey}${metricsCount}`
     } else {
       return nodeKey
     }
-    
+
   }
-  public getKeyBeforeOfMetricNameCount(options){
-    const { listItem,
-      levelKey,
-      listNumber,
-      levelCount,
-    } = options
-    const currentKeyGroup = Object.keys(listItem)
-    const beforeKey = currentKeyGroup.splice(1,levelCount)
-    const count = beforeKey.reduce((pre,cur)=>{
+  public getKeyBeforeOfMetricNameCount(levelCount, currentKeyGroup) {
+    const beforeKey = currentKeyGroup.splice(1, levelCount)
+    const count = beforeKey.reduce((pre, cur) => {
       return pre = isMetricsName(cur) ? pre + 1 : pre
-    },0)
+    }, 0)
     return count
   }
 
+  public getNodeProperyOfLabel() {
+
+  }
+
+  public getNodePropertyOfParentId(count, options, treeNodeGroup, attrMap, metricsItemName) {
+    const { levelKey } = options
+    const isNoneMetricsNameBefore = !count
+    const isMetrics = tree.getNodeLevelType(levelKey) == CategoryType.Metrics
+    if (isNoneMetricsNameBefore && !isMetrics) {
+      return tree.getParentId(treeNodeGroup, options)
+    } else {
+      return tree.getParentIdByMetrics(
+        attrMap,
+        metricsItemName,
+        treeNodeGroup,
+        options
+      )
+    }
+  }
 
 
   public getMultiwayTree() {
@@ -271,7 +265,6 @@ class MultiwayTree {
       wideProps: { wideTableList, rowArray, colArray },
       labelText: { rootLevel, rootKey }
     } = this.tree
-    let isNoneMetricsName = [...rowArray,...colArray].some((key)=> /指标名称\_(?<=)\d*/g.test(key))
     wideTableList.forEach((listItem, listNumber) => {
       const treeNodeGroup = []
       const targetNodeGroup = []
@@ -287,10 +280,11 @@ class MultiwayTree {
           levelCount,
           samePathNode: null,
           metricsCount: null,
-          metricsItemName: null
+          metricsItemName: null,
+          metricsCountSecond: null
         }
-
-        const count = tree.getKeyBeforeOfMetricNameCount(options)
+        const currentKeyGroup = Object.keys(listItem)
+        const count = tree.getKeyBeforeOfMetricNameCount(levelCount, currentKeyGroup)
         let baseProprty = {
           levelKey,
           levelCount,
@@ -299,19 +293,20 @@ class MultiwayTree {
           sumNode: false,
           levelType: tree.getNodeLevelType(levelKey),
         }
-        if(!count){
+        if (!count) {
+          // 名称为零
           if (
             !isMetricsName(levelKey) &&
             tree.getNodeLevelType(levelKey) !== CategoryType.Metrics
           ) {
             let normalGroup = []
             options.metricsCount = null
-            options.metricsItemName  = null
+            options.metricsItemName = null
             const key = tree.getNodeKey(options)
             const nodeAttr = {
               ...baseProprty,
               key,
-              label: isMetricsName(levelKey)  ? null :  listItem[levelKey],
+              label: isMetricsName(levelKey) ? null : listItem[levelKey],
               originKey: getOriginKey(key),
               parentKey: tree.getParentId(treeNodeGroup, options)
             }
@@ -319,206 +314,103 @@ class MultiwayTree {
             normalGroup.push(nodeAttr)
             attrMap[levelKey] = normalGroup
           }
-        } else if(count == 1){
-          if(tree.getNodeLevelType(levelKey) !== CategoryType.Metrics){
+        } else if (count == 1) {
+           // 名称为一
+          if (tree.getNodeLevelType(levelKey) !== CategoryType.Metrics) {
             metricsNameGroup = []
             labelStart = true
-            this.tree.wideProps.metrics.forEach((item, index) => {
+            this.tree.wideProps.metrics.forEach((metricsItemName, index) => {
               options.metricsCount = index
-              options.metricsItemName  = item
+              options.metricsItemName = metricsItemName
               const key = tree.getNodeKey(options)
               let newObj = {
                 ...baseProprty,
                 key,
                 originKey: getOriginKey(key),
-                label: isMetricsName(levelKey)  ? item :  listItem[levelKey],
-                nameLabel: item,
-
-                parentKey:  tree.getParentIdByMetrics(
+                label: isMetricsName(levelKey) ? metricsItemName : listItem[levelKey],
+                nameLabel: metricsItemName,
+                parentKey: tree.getParentIdByMetrics(
                   attrMap,
-                  levelCount,
-                  item,
-                  listItem,
-                  rowArray,
-                  colArray,
-                  false,
-                  treeNodeGroup
+                  metricsItemName,
+                  treeNodeGroup,
+                  options
                 ),
               }
               metricsNameGroup.push(newObj)
             })
             attrMap[levelKey] = metricsNameGroup
-          } 
-        } else if(count == 2){
-          
+          }
+        } else if (count == 2) {
+          if (tree.getNodeLevelType(levelKey) !== CategoryType.Metrics) {
+            metricsNameGroup = []
+            labelStart = true
+            this.tree.wideProps.metrics.forEach((nameOne, metricsCountSecond) => {
+            this.tree.wideProps.metrics.forEach((metricsItemName, index) => {
+              options.metricsCount = index
+              options.metricsCountSecond = metricsCountSecond
+              options.metricsItemName = metricsItemName
+              const number = `${index}${metricsCountSecond}`
+              const key = tree.getNodeKey(options)
+              let newObj = {
+                ...baseProprty,
+                key,
+                originKey: getOriginKey(key),
+                label: isMetricsName(levelKey) ? metricsItemName : listItem[levelKey],
+                nameLabel: metricsItemName,
+                parentKey: tree.getParentIdByMetrics(
+                  attrMap,
+                  metricsItemName,
+                  treeNodeGroup,
+                  options,
+                  number
+                ),
+              }
+              metricsNameGroup.push(newObj)
+            })
+          })
+            attrMap[levelKey] = metricsNameGroup
+          }
         }
-
-       
-
-
-
-
-
-
-        // if (labelStart) {
-        //   // 二次进入 指标名称和正常
-        //   if(tree.getNodeLevelType(levelKey) !== CategoryType.Metrics){
-        //     metricsNameGroup = []
-        //     labelStart = true
-        //     this.tree.wideProps.metrics.forEach((item, index) => {
-        //       options.metricsCount = index
-        //       options.metricsItemName  = item
-        //       const key = tree.getNodeKey(options)
-        //       let newObj = {
-        //         ...baseProprty,
-        //         key,
-        //         originKey: getOriginKey(key),
-        //         label: isMetricsName(levelKey)  ? item :  listItem[levelKey],
-        //         nameLabel: item,
-
-        //         parentKey:  tree.getParentIdByMetrics(
-        //           attrMap,
-        //           levelCount,
-        //           item,
-        //           listItem,
-        //           rowArray,
-        //           colArray,
-        //           false,
-        //           treeNodeGroup
-        //         ),
-        //       }
-        //       metricsNameGroup.push(newObj)
-        //     })
-        //     attrMap[levelKey] = metricsNameGroup
-        //   } 
-        // } else {
-        //   // 第一次出来
-        //   if (
-        //     !isMetricsName(levelKey) &&
-        //     tree.getNodeLevelType(levelKey) !== CategoryType.Metrics
-        //   ) {
-        //     let normalGroup = []
-        //     options.metricsCount = null
-        //     options.metricsItemName  = null
-        //     const key = tree.getNodeKey(options)
-        //     const nodeAttr = {
-        //       ...baseProprty,
-        //       key,
-        //       label: isMetricsName(levelKey)  ? null :  listItem[levelKey],
-        //       originKey: getOriginKey(key),
-        //       parentKey: tree.getParentId(treeNodeGroup, options)
-        //     }
-        //     treeNodeGroup.push(nodeAttr)
-        //     normalGroup.push(nodeAttr)
-        //     attrMap[levelKey] = normalGroup
-
-
-        //   } else if (isMetricsName(levelKey)) {
-        //     metricsNameGroup = []
-        //     labelStart = true
-        //     this.tree.wideProps.metrics.forEach((item, index) => {
-        //       options.metricsCount = index
-        //       options.metricsItemName  = item
-        //       const key = tree.getNodeKey(options)
-             
-        //       let newObj = {
-        //         ...baseProprty,
-        //         key,
-        //         label: isMetricsName(levelKey)  ? item :  listItem[levelKey],
-        //         originKey: getOriginKey(key),
-        //         nameLabel: item,
-        //         parentKey: tree.getParentIdByMetrics(
-        //           attrMap,
-        //           levelCount,
-        //           item,
-        //           listItem,
-        //           rowArray,
-        //           colArray,
-        //           false,
-        //           treeNodeGroup
-        //         )
-        //       }
-        //       metricsNameGroup.push(newObj)
-        //     })
-        //     attrMap[levelKey] = metricsNameGroup
-        //   }
-        // }
         if (tree.getNodeLevelType(levelKey) == CategoryType.Metrics) {
           options.metricsCount = null
-          options.metricsItemName  = null
+          options.metricsItemName = null
           let key = tree.getNodeKey(options)
           const nodeAttr = {
-            levelKey,
-            levelCount,
+            ...baseProprty,
             key,
             label: levelKey,
-            sumType: null,
-            sumLastNode: false,
-            sumNode: false,
-            levelType: tree.getNodeLevelType(levelKey),
             originKey: getOriginKey(key),
             parentKey: tree.getParentIdByMetrics(
               attrMap,
-              levelCount,
               levelKey,
-              listItem,
-              rowArray,
-              colArray,
-              true,
-              treeNodeGroup
+              treeNodeGroup,
+              options
             )
           }
           nodeAttr[levelKey] = listItem[levelKey]
           targetNodeGroup.push(nodeAttr)
           attrMap['指标'] = targetNodeGroup
         }
-      
       })
-      if(isNoneMetricsName){
-      const levelItemByAttribute = metricsNameGroup.length
-        ? [...treeNodeGroup, metricsNameGroup, targetNodeGroup]
-        : [...treeNodeGroup, targetNodeGroup]
-      const arr = [...rootKey, ...rowArray, ...colArray, '指标']
-      let isStart = false
-      arr.forEach((key, index) => {
-        let levelItem = attrMap[key]
-        // while (!Array.isArray(levelItem)) {
-        //   levelItem = [levelItem]
-        // }
-        levelItem.map((item) => {
-          if (
-            Array.isArray(attrMap[arr[index]]) &&
-            /指标名称\_(?<=)\d*/g.test(arr[index]) && !isStart
-          ) {
-            attrMap[arr[index]].forEach((itm) => {
-              tree = tree.getAddToData(itm, attrMap[arr[index - 1]][0])
-            })
-            
-          } else {
-            if (isStart || item.levelType == 'metrics') {
-              const parent = attrMap[arr[index - 1]].find(
-                (k) => k.key == item.parentKey
-              )
-              tree = tree.getAddToData(item, parent)
+        const keyGroup = [...rootKey, ...rowArray, ...colArray, '指标']
+        keyGroup.forEach((key, idx) => {
+          const currentKeyGroup = Object.keys(listItem)
+          const count = tree.getKeyBeforeOfMetricNameCount(idx, currentKeyGroup)
+
+          attrMap[key].map((obj) => {
+            if (!count) {
+              const parent = !idx ? null : attrMap[keyGroup[idx - 1]][0]
+              tree = tree.getAddToData(obj, parent)
             } else {
-              if(!index){
-                tree = tree.getAddToData(item, null)
-              } else {
-                tree = tree.getAddToData(item, attrMap[arr[index - 1]][0])
-              }
-             
+              const parent = attrMap[keyGroup[idx - 1]].find(
+                (item) => item.key == obj.parentKey
+              )
+              tree = tree.getAddToData(obj, parent)
             }
-          }
-          
+
+          })
+
         })
-        if (
-          Array.isArray(attrMap[arr[index]]) &&
-          /指标名称\_(?<=)\d*/g.test(arr[index]) && !isStart
-        ) {
-          isStart = true
-        }
-      })
-    } 
     })
   }
 
@@ -831,23 +723,23 @@ class MultiwayTree {
         isLastSumNode,
         metricsName
       }
-      if(parentNode.key === 'platform_rows_05sumNode'){
+      if (parentNode.key === 'platform_rows_05sumNode') {
         debugger
       }
       if (currentNode.length) {
         newNode = tree.copyPolymerizeNoramlChild(copyParems)
 
-        
+
         const isLast = this.tree.wideProps.rowLast == '指标名称_cols'
-        
+
         if (
           parentNode.originKey ===
-            (this.tree.wideProps.colLast || this.tree.wideProps.rowLast) 
-            ||
+          (this.tree.wideProps.colLast || this.tree.wideProps.rowLast)
+          ||
           (/指标名称\_(?<=)\d*/g.test(currentNode[0].originKey) && isLastSumNode && isLast)
           || /指标名称\_(?<=)\d*/g.test(currentNode[0].originKey)
         ) {
-        
+
           currentNode.forEach((k) => {
             const copyNode = tree.copyIteration(
               deepCopy,
