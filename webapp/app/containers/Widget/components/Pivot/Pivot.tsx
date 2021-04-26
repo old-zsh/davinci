@@ -244,7 +244,9 @@ export class Pivot extends React.PureComponent<IPivotProps, IPivotStates> {
         tree: { wideProps: { resultList } }
       } = tree.getTotalWideTableList(props)
       data = resultList
+      console.log(data,resultList, 'data 1')
     }
+   
     this.rowHeaderWidths = rows.map((r) => getPivotContentTextWidth(r, 'bold'))
     if (!cols.length && !rows.length) {
       this.tree[0] = data.slice()
@@ -252,14 +254,20 @@ export class Pivot extends React.PureComponent<IPivotProps, IPivotStates> {
       if (metrics.length) {
         this.getRemoveSuffixData(props)
       }
+      console.log(data, 'data 2')
       data.forEach((record) => {
+        if(record['name_level1_cols'] == '总和'){
+          debugger
+        }
         this.getRowKeyAndColKey(props, record, !!dimetionAxis)
       })
       if (metrics.length) {
         this.rowKeys = this.getSumRowAndColKeys(this.rowKeys, props)
         this.colKeys = this.getSumRowAndColKeys(this.colKeys, props)
+        console.log(this.rowKeys, this.colKeys, '设置的值')
         if (this.rowKeys.length > 1) {
           this.rowKeys = tree.getSortSumNode(rows, this.rowKeys)
+          this.colKeys = tree.getSortSumNode(cols, this.colKeys)
         }
       }
     }
@@ -275,6 +283,7 @@ export class Pivot extends React.PureComponent<IPivotProps, IPivotStates> {
         height,
         cols.length
       )
+
       this.drawingData.unitMetricWidth = getChartUnitMetricWidth(
         this.tableBodyWidth,
         this.colKeys.length || 1,
@@ -368,12 +377,13 @@ export class Pivot extends React.PureComponent<IPivotProps, IPivotStates> {
     record: object,
     hasDimetionAxis: boolean
   ) => {
-    const { cols, rows, metrics } = props
+    let { cols, rows, metrics } = props
     const rowKey = []
     const colKey = []
     let flatRowKeys
     let flatColKeys
-
+    debugger
+    // metrics = [ "总和", ...metrics]
     const metricNames = metrics.map(
       (m) => `${m.name}${DEFAULT_SPLITER}${m.agg}`
     )
@@ -424,7 +434,6 @@ export class Pivot extends React.PureComponent<IPivotProps, IPivotStates> {
       })
       flatRowKeys = [rowKey.join(String.fromCharCode(0))]
     }
-
     if (~cols.findIndex((c) => c.name === '指标名称')) {
       metricNames.forEach((mn) => {
         const keyArr = []
@@ -473,6 +482,7 @@ export class Pivot extends React.PureComponent<IPivotProps, IPivotStates> {
               )
                 ? PIVOT_LINE_HEIGHT
                 : (PIVOT_LINE_HEIGHT + 1) * metrics.length - 1
+            
               this.rowTree[flatRowKey].height = cellHeight
             }
           }
@@ -495,8 +505,11 @@ export class Pivot extends React.PureComponent<IPivotProps, IPivotStates> {
               )
             }
             const height = !hasDimetionAxis && { height: PIVOT_LINE_HEIGHT }
+           
             this.colTree[flatColKey] = { ...width, ...height, records: [] }
+
             this.colKeys.push(flatColKey.split(String.fromCharCode(0)))
+
           }
           this.colTree[flatColKey].records.push(record)
 
@@ -515,6 +528,7 @@ export class Pivot extends React.PureComponent<IPivotProps, IPivotStates> {
               )
                 ? PIVOT_LINE_HEIGHT
                 : (PIVOT_LINE_HEIGHT + 1) * metrics.length - 1
+          
               this.colTree[flatColKey].width = Math.max(
                 this.colTree[flatColKey].width,
                 maxTextWidth
@@ -530,7 +544,21 @@ export class Pivot extends React.PureComponent<IPivotProps, IPivotStates> {
           if (!this.tree[flatRowKey][flatColKey]) {
             this.tree[flatRowKey][flatColKey] = []
           }
-          this.tree[flatRowKey][flatColKey].push(record)
+          const lens = [...cols, ...rows].length - 1
+          const isSameRecord = this.tree[flatRowKey][flatColKey].find(
+              (t) => {
+                const exitKeyPath = Object.values(t).splice(0, lens)
+                const objKeyPath = Object.values(record).splice(0, lens)
+                return exitKeyPath.join() == objKeyPath.join()
+              }
+          )
+          if(!isSameRecord){
+            this.tree[flatRowKey][flatColKey].push(record)
+          } else {
+            const isEmptyKey = Object.keys(isSameRecord).find((d)=>!isSameRecord[d])
+            isSameRecord[isEmptyKey] = record[isEmptyKey]
+          }  
+          // this.tree[flatRowKey][flatColKey].push(record)
         }
       })
     })

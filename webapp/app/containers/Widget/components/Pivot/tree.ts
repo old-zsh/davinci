@@ -1,8 +1,9 @@
 import Node from './node'
 import cloneDeep from 'lodash/cloneDeep'
-import { getOriginKey, isSumLastNode, isSumNodeEnd, isQuotaSum } from './util'
+import { getOriginKey, isSumLastNode, isSumNodeEnd, isQuotaSum, isMetricsName } from './util'
 import { SumType, CategoryType, SumText } from './constants'
 import { replaceRowColPrx } from './util'
+import { makeSelectLocalControlPanelFormValues } from 'app/containers/ControlPanel/selectors'
 export type TreeNodeLevelType = 'row' | 'col' | 'metrics'
 
 export type TreeNodeSumType = Array<
@@ -140,18 +141,62 @@ class MultiwayTree {
     }
   }
 
+  private getParentIdByMetrics(
+    attrMap,
+    levelCount,
+    key,
+    listItem,
+    rowArray,
+    colArray,
+    type,treeNodeGroup
+  ) {
+    const metricsPreNode = [...rowArray, ...colArray]
+    const preLevel = type
+      ? this.tree.wideProps.colLast
+      : Object.keys(attrMap)[levelCount - 1]
+    
+    const parentItem = attrMap[preLevel].find((item) => {
+      return item.nameLabel == key || item.label == key
+    }) || treeNodeGroup[treeNodeGroup.length - 1].key
+    return parentItem.key
+  }
+  private getParentIdByMetricss(
+    attrMap,
+    levelCount,
+    key,
+    listItem,
+    rowArray,
+    colArray,
+    type
+  ) {
+    const metricsPreNode = [...rowArray, ...colArray]
+    const preLevel = type
+      ? this.tree.wideProps.colLast
+      : Object.keys(attrMap)[levelCount - 1]
+
+    let queue = [...attrMap[preLevel]]
+
+    while (!queue.find((item) => item.label == key)) {
+      queue = attrMap[getOriginKey(queue[0].parentKey)]
+    }
+
+    const parentItem = queue.find((item) => {
+      return item.label == key
+    })
+    return parentItem.key
+  }
+
   public getNodeLevelType(levelKey) {
     const { rootRowArray, colArray } = this.tree.wideProps
     let levelType
     if (rootRowArray.includes(levelKey)) {
-      if(levelKey !== '指标名称_cols'){
+      if (levelKey !== '指标名称_cols') {
         levelType = CategoryType.Row
       } else {
         levelType = 'metricsName'
       }
-      
     } else if (colArray.includes(levelKey)) {
-      if(levelKey !== '指标名称_rows'){
+      if (levelKey !== '指标名称_rows') {
         levelType = CategoryType.Col
       } else {
         levelType = 'metricsName'
@@ -163,7 +208,7 @@ class MultiwayTree {
   }
 
   public getNodeKey(options) {
-    const { listNumber, levelCount, levelKey, listItem } = options
+    const { listNumber, levelCount, levelKey, listItem, metricsItemName, metricsCount } = options
     if (!listNumber) {
       options.samePathNode = null
     } else if (!levelCount) {
@@ -175,7 +220,17 @@ class MultiwayTree {
         queue.push(...currentNode.children)
         currentNode = queue.shift()
       }
-      const listItemPath = Object.values(listItem).splice(1, levelCount)
+      if (metricsItemName) {
+        // if
+        listItem['指标名称_cols'] = metricsItemName
+      }
+      const arrGroup = Object.values(listItem)
+
+      const listItemPath = arrGroup.splice(1, levelCount)
+      if (isMetricsName(levelKey)) {
+        listItemPath.pop()
+        listItemPath.push(metricsItemName)
+      }
       options.samePathNode = queue.find((item) => {
         let itemPath = []
         while (item.parent) {
@@ -188,18 +243,41 @@ class MultiwayTree {
     const { samePathNode } = options
     const initKey = `${levelKey}_${listNumber}`
     const nodeKey = samePathNode ? samePathNode.key : initKey
-    return nodeKey
+    if(metricsItemName){
+      return samePathNode ? `${nodeKey}` : `${nodeKey}${metricsCount}`
+    } else {
+      return nodeKey
+    }
+    
   }
+  public getKeyBeforeOfMetricNameCount(options){
+    const { listItem,
+      levelKey,
+      listNumber,
+      levelCount,
+    } = options
+    const currentKeyGroup = Object.keys(listItem)
+    const beforeKey = currentKeyGroup.splice(1,levelCount)
+    const count = beforeKey.reduce((pre,cur)=>{
+      return pre = isMetricsName(cur) ? pre + 1 : pre
+    },0)
+    return count
+  }
+
+
 
   public getMultiwayTree() {
     let {
-      wideProps: { wideTableList },
-      labelText: { rootLevel }
+      wideProps: { wideTableList, rowArray, colArray },
+      labelText: { rootLevel, rootKey }
     } = this.tree
+    let isNoneMetricsName = [...rowArray,...colArray].some((key)=> /指标名称\_(?<=)\d*/g.test(key))
     wideTableList.forEach((listItem, listNumber) => {
       const treeNodeGroup = []
       const targetNodeGroup = []
-      const metricsNameGroup = []
+      let metricsNameGroup = []
+      const attrMap = {}
+      let labelStart = false
       listItem = { ...rootLevel, ...listItem }
       Object.keys(listItem).forEach((levelKey, levelCount) => {
         const options = {
@@ -207,66 +285,240 @@ class MultiwayTree {
           levelKey,
           listNumber,
           levelCount,
-          samePathNode: null
+          samePathNode: null,
+          metricsCount: null,
+          metricsItemName: null
         }
 
-        const key = tree.getNodeKey(options)
-        const nodeAttr = {
+        const count = tree.getKeyBeforeOfMetricNameCount(options)
+        let baseProprty = {
           levelKey,
           levelCount,
-          key,
-          label: null,
           sumType: null,
           sumLastNode: false,
           sumNode: false,
           levelType: tree.getNodeLevelType(levelKey),
-          originKey: getOriginKey(key),
-          parentKey: tree.getParentId(treeNodeGroup, options)
         }
-
-        if (nodeAttr.levelType == CategoryType.Metrics) {
-          nodeAttr[levelKey] = listItem[levelKey]
-          nodeAttr.label = levelKey
-          targetNodeGroup.push(nodeAttr)
-        } else if (nodeAttr.levelType == 'metricsName'){
-          this.tree.wideProps.metrics.forEach((item,index)=>{
-            let newObj = {
-              levelKey,
-              levelCount,
-              key: `${key}${index}`,
-              label: item,
-              sumType: null,
-              sumLastNode: false,
-              sumNode: false,
-              levelType: tree.getNodeLevelType(levelKey),
+        if(!count){
+          if (
+            !isMetricsName(levelKey) &&
+            tree.getNodeLevelType(levelKey) !== CategoryType.Metrics
+          ) {
+            let normalGroup = []
+            options.metricsCount = null
+            options.metricsItemName  = null
+            const key = tree.getNodeKey(options)
+            const nodeAttr = {
+              ...baseProprty,
+              key,
+              label: isMetricsName(levelKey)  ? null :  listItem[levelKey],
               originKey: getOriginKey(key),
               parentKey: tree.getParentId(treeNodeGroup, options)
             }
-            metricsNameGroup.push(newObj)
-          })
-        } else {
-          nodeAttr.label = listItem[levelKey]
-          treeNodeGroup.push(nodeAttr)
+            treeNodeGroup.push(nodeAttr)
+            normalGroup.push(nodeAttr)
+            attrMap[levelKey] = normalGroup
+          }
+        } else if(count == 1){
+          if(tree.getNodeLevelType(levelKey) !== CategoryType.Metrics){
+            metricsNameGroup = []
+            labelStart = true
+            this.tree.wideProps.metrics.forEach((item, index) => {
+              options.metricsCount = index
+              options.metricsItemName  = item
+              const key = tree.getNodeKey(options)
+              let newObj = {
+                ...baseProprty,
+                key,
+                originKey: getOriginKey(key),
+                label: isMetricsName(levelKey)  ? item :  listItem[levelKey],
+                nameLabel: item,
+
+                parentKey:  tree.getParentIdByMetrics(
+                  attrMap,
+                  levelCount,
+                  item,
+                  listItem,
+                  rowArray,
+                  colArray,
+                  false,
+                  treeNodeGroup
+                ),
+              }
+              metricsNameGroup.push(newObj)
+            })
+            attrMap[levelKey] = metricsNameGroup
+          } 
+        } else if(count == 2){
+          
         }
+
+       
+
+
+
+
+
+
+        // if (labelStart) {
+        //   // 二次进入 指标名称和正常
+        //   if(tree.getNodeLevelType(levelKey) !== CategoryType.Metrics){
+        //     metricsNameGroup = []
+        //     labelStart = true
+        //     this.tree.wideProps.metrics.forEach((item, index) => {
+        //       options.metricsCount = index
+        //       options.metricsItemName  = item
+        //       const key = tree.getNodeKey(options)
+        //       let newObj = {
+        //         ...baseProprty,
+        //         key,
+        //         originKey: getOriginKey(key),
+        //         label: isMetricsName(levelKey)  ? item :  listItem[levelKey],
+        //         nameLabel: item,
+
+        //         parentKey:  tree.getParentIdByMetrics(
+        //           attrMap,
+        //           levelCount,
+        //           item,
+        //           listItem,
+        //           rowArray,
+        //           colArray,
+        //           false,
+        //           treeNodeGroup
+        //         ),
+        //       }
+        //       metricsNameGroup.push(newObj)
+        //     })
+        //     attrMap[levelKey] = metricsNameGroup
+        //   } 
+        // } else {
+        //   // 第一次出来
+        //   if (
+        //     !isMetricsName(levelKey) &&
+        //     tree.getNodeLevelType(levelKey) !== CategoryType.Metrics
+        //   ) {
+        //     let normalGroup = []
+        //     options.metricsCount = null
+        //     options.metricsItemName  = null
+        //     const key = tree.getNodeKey(options)
+        //     const nodeAttr = {
+        //       ...baseProprty,
+        //       key,
+        //       label: isMetricsName(levelKey)  ? null :  listItem[levelKey],
+        //       originKey: getOriginKey(key),
+        //       parentKey: tree.getParentId(treeNodeGroup, options)
+        //     }
+        //     treeNodeGroup.push(nodeAttr)
+        //     normalGroup.push(nodeAttr)
+        //     attrMap[levelKey] = normalGroup
+
+
+        //   } else if (isMetricsName(levelKey)) {
+        //     metricsNameGroup = []
+        //     labelStart = true
+        //     this.tree.wideProps.metrics.forEach((item, index) => {
+        //       options.metricsCount = index
+        //       options.metricsItemName  = item
+        //       const key = tree.getNodeKey(options)
+             
+        //       let newObj = {
+        //         ...baseProprty,
+        //         key,
+        //         label: isMetricsName(levelKey)  ? item :  listItem[levelKey],
+        //         originKey: getOriginKey(key),
+        //         nameLabel: item,
+        //         parentKey: tree.getParentIdByMetrics(
+        //           attrMap,
+        //           levelCount,
+        //           item,
+        //           listItem,
+        //           rowArray,
+        //           colArray,
+        //           false,
+        //           treeNodeGroup
+        //         )
+        //       }
+        //       metricsNameGroup.push(newObj)
+        //     })
+        //     attrMap[levelKey] = metricsNameGroup
+        //   }
+        // }
+        if (tree.getNodeLevelType(levelKey) == CategoryType.Metrics) {
+          options.metricsCount = null
+          options.metricsItemName  = null
+          let key = tree.getNodeKey(options)
+          const nodeAttr = {
+            levelKey,
+            levelCount,
+            key,
+            label: levelKey,
+            sumType: null,
+            sumLastNode: false,
+            sumNode: false,
+            levelType: tree.getNodeLevelType(levelKey),
+            originKey: getOriginKey(key),
+            parentKey: tree.getParentIdByMetrics(
+              attrMap,
+              levelCount,
+              levelKey,
+              listItem,
+              rowArray,
+              colArray,
+              true,
+              treeNodeGroup
+            )
+          }
+          nodeAttr[levelKey] = listItem[levelKey]
+          targetNodeGroup.push(nodeAttr)
+          attrMap['指标'] = targetNodeGroup
+        }
+      
       })
-      const levelItemByAttribute = [...treeNodeGroup, metricsNameGroup, targetNodeGroup]
-      console.log(levelItemByAttribute, 'levelItemByAttribute')
-      levelItemByAttribute.forEach((levelItem, index) => {
-        while (!Array.isArray(levelItem)) {
-          levelItem = [levelItem]
-        }
+      if(isNoneMetricsName){
+      const levelItemByAttribute = metricsNameGroup.length
+        ? [...treeNodeGroup, metricsNameGroup, targetNodeGroup]
+        : [...treeNodeGroup, targetNodeGroup]
+      const arr = [...rootKey, ...rowArray, ...colArray, '指标']
+      let isStart = false
+      arr.forEach((key, index) => {
+        let levelItem = attrMap[key]
+        // while (!Array.isArray(levelItem)) {
+        //   levelItem = [levelItem]
+        // }
         levelItem.map((item) => {
-          if(Array.isArray(levelItemByAttribute[index - 1])){
-            const target = levelItemByAttribute[index - 1].find((k)=>{
-              return k.label === item.label
-            })  
-            tree = tree.getAddToData(item, target)
+          if (
+            Array.isArray(attrMap[arr[index]]) &&
+            /指标名称\_(?<=)\d*/g.test(arr[index]) && !isStart
+          ) {
+            attrMap[arr[index]].forEach((itm) => {
+              tree = tree.getAddToData(itm, attrMap[arr[index - 1]][0])
+            })
+            
           } else {
-            tree = tree.getAddToData(item, levelItemByAttribute[index - 1])
+            if (isStart || item.levelType == 'metrics') {
+              const parent = attrMap[arr[index - 1]].find(
+                (k) => k.key == item.parentKey
+              )
+              tree = tree.getAddToData(item, parent)
+            } else {
+              if(!index){
+                tree = tree.getAddToData(item, null)
+              } else {
+                tree = tree.getAddToData(item, attrMap[arr[index - 1]][0])
+              }
+             
+            }
           }
           
         })
+        if (
+          Array.isArray(attrMap[arr[index]]) &&
+          /指标名称\_(?<=)\d*/g.test(arr[index]) && !isStart
+        ) {
+          isStart = true
+        }
       })
+    } 
     })
   }
 
@@ -291,6 +543,7 @@ class MultiwayTree {
         ) {
           args.backParent = args.backParent.parent
         }
+
         return tree.getFirstNotSum(parentNode).children
       } else {
         return backParent.parent.children
@@ -298,14 +551,23 @@ class MultiwayTree {
     }
   }
 
-  public getChildGroup(item) {
+  public getChildGroup(item, metricsName) {
     const queue = [item]
     let currentNode = queue.shift()
     while (
       currentNode &&
       currentNode.originKey !== this.tree.wideProps.colArray[0]
     ) {
-      queue.push(...currentNode.children)
+      if (
+        metricsName &&
+        currentNode.children.every((o) => o.levelType == 'metricsName')
+      ) {
+        const child = currentNode.children.filter((j) => j.label == metricsName)
+        queue.push(...child)
+      } else {
+        queue.push(...currentNode.children)
+      }
+      // queue.push(...currentNode.children)
       currentNode = queue.shift()
     }
     return [...queue, currentNode]
@@ -318,10 +580,15 @@ class MultiwayTree {
     )
   }
 
-  public getMergePartBranch(parentNode: ITreeNodeProperty) {
+  public getMergePartBranch(parentNode: ITreeNodeProperty, metricsName) {
     const polymerizeGroup = []
-    tree.getPartBranch(parentNode).forEach((item: ITreeNodeProperty) => {
-      tree.getChildGroup(item).forEach((node) => {
+    let branchs = tree.getPartBranch(parentNode)
+    if (branchs.every((g) => g.levelType == 'metricsName')) {
+      branchs = [branchs[0]]
+    }
+    branchs.forEach((item: ITreeNodeProperty) => {
+      let groupChild = tree.getChildGroup(item, metricsName)
+      groupChild.forEach((node) => {
         const metrics = this.tree.wideProps.metrics
         let colBeginNode = new Node(cloneDeep(node))
         colBeginNode.set(cloneDeep(node), metrics)
@@ -355,7 +622,7 @@ class MultiwayTree {
     const { deepCopy, isLastSumNode, parentNode, currentNode } = copyParems
     const group = polymerizeGroup || currentNode
     return group.reduce((sumNode, node) => {
-      if (parentNode.originKey == this.tree.wideProps.colLast) {
+      if (parentNode.originKey == this.tree.wideProps.colLast || /指标名称\_(?<=)\d*/g.test(currentNode[0].originKey)) {
         return sumNode
       } else {
         const polyNormalNode = deepCopy(
@@ -385,13 +652,12 @@ class MultiwayTree {
   }
 
   public decideSumBranchType(node) {
-    
     if (
       Object.keys(this.tree.wideProps.metricsTotal).includes(node.originKey)
     ) {
       return null
     }
-   
+
     const isBeiginNoneParentSumKey = tree.getFirstNotSumColAndRow(node)
       .originKey
     const isBeiginSumLastNode = tree.getFirstNotSumColAndRow(node).sumLastNode
@@ -441,7 +707,8 @@ class MultiwayTree {
       deepCopy,
       parentNode,
       nodeValue,
-      isLastSumNode
+      isLastSumNode,
+      metricsName
     } = options
     switch (key) {
       case 'levelCount':
@@ -471,6 +738,9 @@ class MultiwayTree {
         newNode[key] = tree.decideSumBranchType(newNode)
         break
       case 'label':
+        if (newNode.key == '指标名称_cols_003sumNode') {
+          debugger
+        }
         newNode[key] = tree.decideSumOrSubSumTextDisplay(options)
         break
       case 'children':
@@ -478,7 +748,8 @@ class MultiwayTree {
           deepCopy,
           nodeValue,
           newNode,
-          isLastSumNode
+          isLastSumNode,
+          metricsName
         )
         break
       default:
@@ -489,11 +760,16 @@ class MultiwayTree {
   public decideSumOrSubSumTextDisplay(options) {
     const { nodeValue, isLastSumNode, newNode } = options
     const totalTypes = tree.decideSumBranchType(newNode)
-
-    if (isLastSumNode && totalTypes && newNode.levelType !== "metricsName") {
+    // 名称在首位 去掉 && newNode.levelType !== 'metricsName'
+    if (isLastSumNode && totalTypes && newNode.levelType !== 'metricsName') {
       const Sum = [SumType.ColTotal, SumType.RowTotal].includes(...totalTypes)
       return Sum ? SumText.Sum : SumText.Sub
-    } else {
+    }
+    // else if(isLastSumNode && totalTypes && newNode.levelType == 'metricsName'){
+    //   const Sum = [SumType.ColTotal, SumType.RowTotal].includes(...totalTypes)
+    //   return SumText.Sum
+    // }
+    else {
       return nodeValue
     }
   }
@@ -502,20 +778,21 @@ class MultiwayTree {
     deepCopy,
     currentNode,
     parentNode,
-    isLastSumNode = false
+    isLastSumNode = false,
+    metricsName = null
   ) {
-    return deepCopy({ currentNode, parentNode }, { isLastSumNode })
+    return deepCopy({ currentNode, parentNode, metricsName }, { isLastSumNode })
   }
 
-  // TODO 
+  // TODO
   public copyPolymerizeNoramlChild(copyParems) {
-    const { parentNode, newNode, isLastSumNode } = copyParems
+    const { parentNode, newNode, isLastSumNode, metricsName } = copyParems
     let polymerizeGroup
     if (
       parentNode.originKey === this.tree.wideProps.rowLast &&
       this.tree.wideProps.colArray.length
     ) {
-      polymerizeGroup = tree.getMergePartBranch(parentNode)
+      polymerizeGroup = tree.getMergePartBranch(parentNode, metricsName)
     }
     if (
       polymerizeGroup ||
@@ -530,7 +807,7 @@ class MultiwayTree {
     let indexNumber = 0
     const deepCopy = (copyNode, copyOptions) => {
       indexNumber++
-      const { currentNode, parentNode } = copyNode
+      const { currentNode, parentNode, metricsName } = copyNode
       const { isLastSumNode = true } = copyOptions
       const metrics = this.tree.wideProps.metrics
 
@@ -551,33 +828,51 @@ class MultiwayTree {
         ...copyOptions,
         newNode,
         indexNumber,
-        isLastSumNode
+        isLastSumNode,
+        metricsName
+      }
+      if(parentNode.key === 'platform_rows_05sumNode'){
+        debugger
       }
       if (currentNode.length) {
         newNode = tree.copyPolymerizeNoramlChild(copyParems)
-        // if(parentNode.key == "gro_rows_6sumLastNode"){
-        //   debugger
-        // }
-        const isMetricsName = currentNode.every((f)=>f.levelType == 'metricsName')
+
+        
+        const isLast = this.tree.wideProps.rowLast == '指标名称_cols'
+        
         if (
           parentNode.originKey ===
-          (this.tree.wideProps.colLast || this.tree.wideProps.rowLast) || isMetricsName
+            (this.tree.wideProps.colLast || this.tree.wideProps.rowLast) 
+            ||
+          (/指标名称\_(?<=)\d*/g.test(currentNode[0].originKey) && isLastSumNode && isLast)
+          || /指标名称\_(?<=)\d*/g.test(currentNode[0].originKey)
         ) {
+        
           currentNode.forEach((k) => {
-            const copyNode = tree.copyIteration(deepCopy, k, parentNode, true)
+            const copyNode = tree.copyIteration(
+              deepCopy,
+              k,
+              parentNode,
+              true,
+              k.label
+            )
             newNode.push(copyNode)
           })
+          // }
         } else {
-          if(!isMetricsName){
+          const isColTop = this.tree.wideProps.colArray[0] === '指标名称_rows'
+          const isRowTop = this.tree.wideProps.rowArray[0] === '指标名称_cols'
+
+          if (!/指标名称\_(?<=)\d*/g.test(currentNode[0].originKey)) {
             const copyNode = tree.copyIteration(
               deepCopy,
               currentNode[0],
               parentNode,
-              true
+              true,
+              metricsName
             )
             newNode.push(copyNode)
           }
-          
         }
       } else {
         const baseKey = [
@@ -609,7 +904,7 @@ class MultiwayTree {
       }
       return newNode
     }
-    return tree.copyIteration(deepCopy, currentNode, parentNode, true)
+    return tree.copyIteration(deepCopy, currentNode, parentNode, true, null)
   }
 
   public getSumMultiwayTree() {
@@ -623,8 +918,20 @@ class MultiwayTree {
     rowColConcat.splice(rowColConcat.length - 1, 1, ...rootKey)
     while (currentNode && rowColConcat.includes(currentNode.originKey)) {
       queue.push(...currentNode.children)
-      const isMetricsName = currentNode.children.some((d)=> d.levelType==  "metricsName")
-      if(!isMetricsName){
+      const isMetricsName = currentNode.children.some(
+        (d) => d.levelType == 'metricsName'
+      )
+      // 只有指标名称在行首或者列首时候 可以显示，其他不显示
+      const isColTop = this.tree.wideProps.colArray[0] === '指标名称_rows'
+      const isRowTop = this.tree.wideProps.rowArray[0] === '指标名称_cols'
+      if (currentNode.key == 'platform_rows_37sumNode') {
+        debugger
+      }
+      if (
+        !isMetricsName ||
+        (isMetricsName && isColTop) ||
+        (isMetricsName && isRowTop)
+      ) {
         currentNode.children.push(
           tree.copyTotalNode(currentNode.children[0], currentNode)
         )
@@ -652,10 +959,17 @@ class MultiwayTree {
     queue.push(...currentNode.children)
     while (queue.length) {
       currentNode = queue.shift()
-      if (this.tree.wideProps.metrics.includes(currentNode.label) && currentNode.levelType == CategoryType.Metrics) {
+      // if(!currentNode){
+      //   debugger
+      // }
+      if (
+        this.tree.wideProps.metrics.includes(currentNode.label) &&
+        currentNode.levelType == CategoryType.Metrics
+      ) {
         currentNode.sumType = tree.getNodePathSumType(currentNode)
         this.tree.wideProps.metricNodeList.push(currentNode)
       }
+
       queue.push(...currentNode.children)
     }
   }
@@ -694,12 +1008,12 @@ class MultiwayTree {
         }
         const { from, path } = getFirstNonSumParent(node, [])
         this.tree.wideProps.metrics.forEach((key: string) => {
-          // const needSum = node.sumType.some((item) =>
-          //   this.tree.wideProps.metricsTotal[node.originKey].includes(item)
-          // )
-          // if (needSum) {
+          const needSum = node.sumType.some((item) =>
+            this.tree.wideProps.metricsTotal[node.originKey].includes(item)
+          )
+          if (needSum) {
             tree.matchSameNodeSum(from.children, key, path)
-          // }
+          }
         })
       } else {
         while (node) {
@@ -768,48 +1082,67 @@ class MultiwayTree {
       rowArray,
       metricsTotal
     } = this.tree.wideProps
-    let rowOrder = [...colArray, ...rowArray, ...Object.keys(metricsTotal)]
-    rowOrder = rowOrder.filter((key)=> !/指标名称\_(?<=)\d*/g.test(key))
+    let rowOrder = [...rowArray, ...colArray, ...Object.keys(metricsTotal)]
+    rowOrder = rowOrder.filter((key) => !/指标名称\_(?<=)\d*/g.test(key))
+    console.log(resultWideList, 'resultWideList')
     this.tree.wideProps.resultList = resultWideList.reduce((pre, cur) => {
       const newObj = {}
       rowOrder.forEach((key) => {
+        // if(cur[key]){
         newObj[key] = cur[key]
+        // }
       })
       return pre.concat(newObj)
     }, [])
-   console.log(this.tree.wideProps.resultList,resultWideList, 'this.tree.wideProps.resultList')
   }
 
   public getTotalWideTableJson() {
+    const { rowArray, colArray } = this.tree.wideProps
+    const lens = [...rowArray, ...colArray].length - 1
     this.tree.wideProps.metricNodeList.forEach(
       (item: ITreeNodeProperty, count: number) => {
         const len = this.tree.wideProps.metrics.length
-        if (!(count % len)) {
-          let obj = {}
-          while (item.parent) {
-            if(item.levelType !== "metricsName"){
-              if (item.levelType === CategoryType.Metrics) {
-                obj[item.originKey] = item[item.originKey]
-              } else {
+        // if (!(count % len)) {
+        let obj = {}
+        while (item.parent) {
+          if (item.levelType !== 'metricsName') {
+            if (item.levelType === CategoryType.Metrics) {
+              obj[item.originKey] = item[item.originKey]
+            } else {
+              if (item.label) {
                 obj[item.originKey] = item.label
               }
             }
-            item = item.parent
           }
-          this.tree.wideProps.resultWideList.push(obj)
-        } else {
-          const resultWideListLast = this.tree.wideProps.resultWideList[
-            this.tree.wideProps.resultWideList.length - 1
-          ]
-          resultWideListLast[item.originKey] = item[item.originKey]
+          item = item.parent
         }
+        this.tree.wideProps.resultWideList.push(obj)
+        // const isSamePath = this.tree.wideProps.resultWideList.find(
+        //   (t) => {
+        //     const exitKeyPath = Object.values(t).reverse().splice(0, lens)
+        //     const objKeyPath = Object.values(obj).reverse().splice(0, lens)
+        //     return exitKeyPath.join() == objKeyPath.join()
+        //   }
+        // )
+        // if (!isSamePath) {
+        //   this.tree.wideProps.resultWideList.push(obj)
+        // } else {
+        //   const isEmptyKey = Object.keys(isSamePath).find((d)=>!isSamePath[d])
+        //   isSamePath[isEmptyKey] = obj[isEmptyKey]
+        // }
+
+        // } else {
+        //   const resultWideListLast = this.tree.wideProps.resultWideList[
+        //     this.tree.wideProps.resultWideList.length - 1
+        //   ]
+        //   resultWideListLast[item.originKey] = item[item.originKey]
+        // }
       }
     )
   }
 
   public initProps(props) {
     const { rows, cols, metrics, data } = props
-    console.log(props, '输入')
     this.tree.wideProps.colArray = rows.map((item) => `${item.name}_rows`)
     this.tree.wideProps.rowArray = cols.reduce((col, item) => {
       const repeatGroup = col.filter((item) => item === `${item.name}_cols`)
@@ -919,7 +1252,7 @@ class MultiwayTree {
     tree.getSumMetricDFS()
     tree.getTotalWideTableJson()
     tree.makeOriginJson()
-    console.log(tree, 'tree')
+    console.log(tree, this.tree.wideProps.resultWideList, 'tree')
     return tree
   }
 }
