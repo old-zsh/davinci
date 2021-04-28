@@ -193,6 +193,7 @@ export interface IWidgetConfig extends IWidgetConfigBase {
 export interface IWidgetWrapperProps extends IWidgetProps {
   loading?: boolean | JSX.Element
   empty?: boolean | JSX.Element
+  sum?: boolean | JSX.Element
 }
 
 export interface IWidgetWrapperStates {
@@ -247,7 +248,6 @@ export class Widget extends React.Component<
 
   public render () {
     const { loading, empty, ...rest } = this.props
-    
     const { width, height } = this.state
     const widgetProps = { width, height, ...rest }
     let widgetContent: JSX.Element

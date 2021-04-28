@@ -134,7 +134,7 @@ export class Workbench extends React.Component<
       originalComputed: [],
       cache: false,
       autoLoadData: true,
-      sum: true,
+      sum: false,
       controlQueryMode: ControlQueryMode.Immediately,
       limit: null,
       expired: DEFAULT_CACHE_EXPIRED,
