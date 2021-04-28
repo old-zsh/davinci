@@ -36,7 +36,7 @@ import Legend from './Legend'
 import { RenderType, IWidgetProps } from '../Widget'
 import PivotTypes from '../../config/pivot/PivotTypes'
 const styles = require('./Pivot.less')
-import {  SumText } from './constants'
+import { SumText } from './constants'
 
 export interface IDrawingData {
   elementSize: number
@@ -241,7 +241,9 @@ export class Pivot extends React.PureComponent<IPivotProps, IPivotStates> {
     } = props
     if (data.length && metrics.length && sum) {
       const {
-        tree: { wideProps: { resultList } }
+        tree: {
+          wideProps: { resultList }
+        }
       } = tree.getTotalWideTableList(props)
       data = resultList
     }
@@ -261,20 +263,30 @@ export class Pivot extends React.PureComponent<IPivotProps, IPivotStates> {
         if (this.rowKeys.length > 1) {
           this.rowKeys = tree.getSortSumNode(rows, this.rowKeys)
           this.colKeys = tree.getSortSumNode(cols, this.colKeys)
-          if(rows[0].name == '指标名称'){
-            this.rowKeys = this.rowKeys.filter((array)=>{
-              return !array.includes(SumText.Sum)
-            })
-          }
-          if(cols[0].name == '指标名称'){
-            this.colKeys = this.colKeys.filter((array)=>{
-              return !array.includes(SumText.Sum)
-            })
-          }
+          // this.rowKeys = this.rowKeys.map((item)=>{
+          //   const sliceItem = item.slice(1,item.length)
+          //   if(sliceItem.every((d)=> d == SumText.Sum)){
+          //     let group = item[0].split('@')
+          //     group.splice(0,1,SumText.Sum)
+          //     item[0] = group.join('@')
+          //   }
+          //   return item
+          // })
+          // console.log(this.rowKeys, '设置colKeys 2')
+          // if(rows[0].name == '指标名称'){
+          //   this.rowKeys = this.rowKeys.filter((array)=>{
+          //     return !array.includes(SumText.Sum)
+          //   })
+          // }
+          // if(cols[0].name == '指标名称'){
+          //   this.colKeys = this.colKeys.filter((array)=>{
+          //     return !array.includes(SumText.Sum)
+          //   })
+          // }
         }
       }
     }
-
+    console.log(this.rowKeys,this.colKeys, 'this.rowKeys')
     if (dimetionAxis) {
       this.tableBodyWidth = getTableBodyWidth(
         dimetionAxis,
@@ -313,6 +325,7 @@ export class Pivot extends React.PureComponent<IPivotProps, IPivotStates> {
       )
 
       const treeData = this.getTreeData()
+      console.log(treeData, 'treeData')
       this.recordGrouping(props, treeData)
       this.metricAxisConfig = metrics.reduce((obj: IMetricAxisConfig, m) => {
         const {
@@ -391,6 +404,7 @@ export class Pivot extends React.PureComponent<IPivotProps, IPivotStates> {
     if (!metricNames.length) {
       metricNames.push('无指标值')
     }
+
     if (~rows.findIndex((r) => r.name === '指标名称')) {
       metricNames.forEach((mn) => {
         const keyArr = []
@@ -416,10 +430,21 @@ export class Pivot extends React.PureComponent<IPivotProps, IPivotStates> {
         })
         rowKey.push(keyArr)
       })
+      
+      rowKey.forEach((ra,idx)=>{
+        const sliceItem = ra.slice(1, ra.length)
+        if (sliceItem.every((d) => d == SumText.Sum)) {
+          let group = ra[0].split('@')
+          group.splice(0, 1, `${group[0]}[${SumText.Sum}]`)
+          ra[0] = group.join('@')
+        }
+      })
+     
       flatRowKeys = rowKey.reduce(
         (arr, keys) => arr.concat(keys.join(String.fromCharCode(0))),
         []
       )
+      console.log(rowKey, flatRowKeys, 'flatRowKeys')
     } else {
       rows.forEach((r, i) => {
         const rowName = record[`${r.name}_rows`]
@@ -452,6 +477,7 @@ export class Pivot extends React.PureComponent<IPivotProps, IPivotStates> {
         (arr, keys) => arr.concat(keys.join(String.fromCharCode(0))),
         []
       )
+      console.log(flatColKeys,'flatColKeys')
     } else {
       cols.forEach((c) => {
         const rowName = record[`${c.name}_cols`]
@@ -505,13 +531,14 @@ export class Pivot extends React.PureComponent<IPivotProps, IPivotStates> {
             this.colTree[flatColKey] = { ...width, ...height, records: [] }
             this.colKeys.push(flatColKey.split(String.fromCharCode(0)))
           }
-          const isExited = this.colTree[flatColKey].records.some((item)=>{
-            return Object.keys(item).toString() == Object.keys(record).toString()
+          const isExited = this.colTree[flatColKey].records.some((item) => {
+            return (
+              Object.keys(item).toString() == Object.keys(record).toString()
+            )
           })
-          if(!isExited){
+          if (!isExited) {
             this.colTree[flatColKey].records.push(record)
           }
-         
 
           if (metrics.length) {
             if (!hasDimetionAxis) {
@@ -543,26 +570,18 @@ export class Pivot extends React.PureComponent<IPivotProps, IPivotStates> {
           if (!this.tree[flatRowKey][flatColKey]) {
             this.tree[flatRowKey][flatColKey] = []
           }
-          const isExited = this.tree[flatRowKey][flatColKey].some((item)=>{
-            return Object.keys(item).toString() == Object.keys(record).toString()
+          const isExited = this.tree[flatRowKey][flatColKey].some((item) => {
+            return (
+              Object.keys(item).toString() == Object.keys(record).toString()
+            )
           })
-          if(!isExited){
+          if (!isExited) {
             this.tree[flatRowKey][flatColKey].push(record)
           }
-          
         }
       })
     })
-  }
-
-  private sortingKeys = (keys) => (a, b) => {
-    for (let i = 0; i < keys.length; i += 1) {
-      const comparison = naturalSort(a[i], b[i])
-      if (comparison) {
-        return comparison
-      }
-    }
-    return 0
+    console.log(this.tree, 'this.tree')
   }
 
   private recordGrouping = (props: IPivotProps, records: any[][]) => {

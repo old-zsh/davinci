@@ -77,7 +77,11 @@ export class Cell extends React.PureComponent <ICellProps, ICellState> {
       lineStyle
     } = chartStyles.pivot
     let metrics = this.props.metrics
+    if( rowKey == "总停留时间[总和]@davinci@74046983@davinci@sum"){
+      debugger
+    }
     if (colKey.includes(DEFAULT_SPLITER) && rowKey.includes(DEFAULT_SPLITER)) {
+    
       const metricColKey = getMetricKey(colKey)
       const metricRowKey = getMetricKey(rowKey)
       if (metricColKey === metricRowKey) {

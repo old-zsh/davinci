@@ -224,6 +224,7 @@ export class TableBody extends React.Component<ITableBodyProps, ITableBodyState>
       ifSelectedTdToDrill
       // onHideDrillPanel
     } = this.props
+    console.log(this.props, 'this.props')
     const { elementSize, unitMetricWidth, unitMetricHeight, tableBodyCollapsed } = drawingData
     let tableBody = null
     const chartGrid: IChartLine[] = []
@@ -509,23 +510,30 @@ export class TableBody extends React.Component<ITableBodyProps, ITableBodyState>
       )
     } else {
       if (colKeys.length && rowKeys.length) {
-        rowKeys.forEach((rk) => {
-          const flatRowKey = rk.join(String.fromCharCode(0))
+        rowKeys.forEach((rk,index) => {
+          let flatRowKey = rk.join(String.fromCharCode(0))
           const line = []
           tableWidth = 0
-
+          if(index == 62){
+            debugger
+          }
+          let flatRowKeys
           colKeys.forEach((ck) => {
             const flatColKey = ck.join(String.fromCharCode(0))
             const records = tree[flatRowKey][flatColKey]
-
             const { width, height } = colTree[flatColKey]
             const cellWidth = getPivotCellWidth(width)
+            if(index == 62){
+              flatRowKeys = "总停留时间@davinci@74046983@davinci@sum总和总和"
+            } else {
+              flatRowKeys = flatRowKey
+            }
             tableWidth += cellWidth
             line.push(
               <Cell
-                key={`${flatRowKey}${flatColKey}`}
+                key={`${flatRowKeys}${flatColKey}`}
                 colKey={flatColKey}
-                rowKey={flatRowKey}
+                rowKey={flatRowKeys}
                 width={cellWidth}
                 interacting={this.props.interacting}
                 height={getPivotCellHeight(height)}
@@ -541,7 +549,7 @@ export class TableBody extends React.Component<ITableBodyProps, ITableBodyState>
           })
 
           cells.push(
-            <tr key={flatRowKey}>
+            <tr key={flatRowKeys}>
               {line}
             </tr>
           )
