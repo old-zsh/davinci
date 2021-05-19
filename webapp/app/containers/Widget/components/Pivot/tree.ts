@@ -61,13 +61,15 @@ class MultiwayTree {
     }
   }
 
-  constructor() {}
+  constructor() { }
 
   public getInitProps(props) {
     const { rows, cols, metrics, data, color } = props
-    const colorSame = [...rows, ...cols].some((item)=>item.name === color.items[0]?.name)
+    const colorSame = [...rows, ...cols].some(
+      (item) => item.name === color.items[0]?.name
+    )
     let rowsConcat = [...rows]
-    if(!colorSame){
+    if (!colorSame) {
       rowsConcat.push(...color.items)
     }
     this.treeProps.row.rowArray = rowsConcat.map((item) => `${item.name}_rows`)
@@ -77,7 +79,7 @@ class MultiwayTree {
       col = [...col, `${item.name}_cols${colItem}`]
       return col
     }, [])
-    
+
     this.treeProps.metrics.metricsAgg = metrics.map((l) => l.agg)
     this.treeProps.metrics.metricsSelect = metrics.reduce((result, item) => {
       result[`${item.agg}(${item.name.split('@')[0]})`] =
@@ -172,7 +174,7 @@ class MultiwayTree {
     return flatItem(result)
   }
 
-  public getLevelType(node, type){
+  public getLevelType(node, type) {
     return node.levelType === CategoryType[type]
   }
 
@@ -303,10 +305,14 @@ class MultiwayTree {
   public getLevelGroupNodeParent(levelGroup, levelItem, index) {
     const {
       metrics: { metricsAgg },
-      col: { colLast }
+      col: { colArray },
+      row: { rowArray }
     } = this.treeProps
     if (this.getLevelType(levelItem, 'Metrics')) {
-      return levelGroup.find((item)=>item.originKey == colLast)
+      const rowColConcat = [...rowArray, ...colArray]
+      return levelGroup.find(
+        (item) => item.originKey == rowColConcat[rowColConcat.length - 1]
+      )
     } else {
       return levelGroup[index - 1]
     }
@@ -352,11 +358,12 @@ class MultiwayTree {
         levelGroup.push(nodeProperty)
       })
       levelGroup.forEach((levelItem, index) => {
-
-        tree = tree.getAddToData(
+        const parent = tree.getLevelGroupNodeParent(
+          levelGroup,
           levelItem,
-          tree.getLevelGroupNodeParent(levelGroup, levelItem, index)
+          index
         )
+        tree = tree.getAddToData(levelItem, parent)
       })
     })
   }
@@ -481,7 +488,7 @@ class MultiwayTree {
 
   public decideSumNodeKeyTextDisplay(options) {
     const { nodeValue, isLastSumNode, indexNumber, currentNode } = options
-    if (this.getLevelType(currentNode, 'Col')&& isLastSumNode) {
+    if (this.getLevelType(currentNode, 'Col') && isLastSumNode) {
       return `${nodeValue}sumLastNode`
     } else {
       return `${nodeValue}${indexNumber}sumNode`
@@ -565,8 +572,7 @@ class MultiwayTree {
       row: { rowLast }
     } = this.treeProps
     const { parentNode, newNode, isLastSumNode } = copyParems
-    const normalSumNode =
-      !isLastSumNode && this.getLevelType(parentNode, "Col")
+    const normalSumNode = !isLastSumNode && this.getLevelType(parentNode, 'Col')
     let AggGroup
     if (parentNode.originKey === rowLast && colArray.length) {
       AggGroup = tree.getMergePartBranch(parentNode)
@@ -818,15 +824,20 @@ class MultiwayTree {
       metrics: { metricsNodeList, metricsText, metricsSelect },
       list: { totalWideList },
       row: { rowArray },
-      col: { colArray },
+      col: { colArray }
     } = this.treeProps
     metricsNodeList.forEach((item, index) => {
       const resultWideListLast = totalWideList[totalWideList.length - 1]
-      if (!(index %  metricsText.length)) {
+      if (!(index % metricsText.length)) {
         const wideObj = {}
         while (item.parent) {
-          const label = this.getLevelType(item, 'Metrics') ? item[item.originKey] :  item.label
-          wideObj[item.originKey] = label
+          const label = this.getLevelType(item, 'Metrics')
+            ? item[item.originKey]
+            : item.label
+          if(item.originKey !== '指标名称_cols'){
+            wideObj[item.originKey] = label
+          }
+          
           item = item.parent
         }
         totalWideList.push(wideObj)
@@ -835,10 +846,10 @@ class MultiwayTree {
         const correctOrder = [
           ...colArray,
           ...rowArray,
-          "platform",
+          'platform',
           ...Object.keys(metricsSelect)
         ]
-       
+
         // this.treeProps.list.
         correctOrder.forEach((key) => {
           const value = Reflect.get(resultWideListLast, key)
@@ -864,4 +875,3 @@ class MultiwayTree {
 let tree = new MultiwayTree()
 
 export default tree
-

@@ -68,8 +68,9 @@ export class Cell extends React.PureComponent <ICellProps, ICellState> {
       ifSelectedTdToDrill(obj)
     })
   }
+
   public render () {
-    let { colKey = '', rowKey = '', width, height, data, chartStyles, color, legend } = this.props
+    let { colKey = '', rowKey = '', width, height, data, chartStyles, color, legend, metrics } = this.props
     const { isSelected } = this.state
     const {
       color: fontColor,
@@ -78,10 +79,17 @@ export class Cell extends React.PureComponent <ICellProps, ICellState> {
       lineColor,
       lineStyle
     } = chartStyles.pivot
-    let metrics = this.props.metrics
+    let totalOpen = metrics.some((m)=> m?.total?.totalType?.length)
+    if(totalOpen){
+      if(colKey && colKey.includes(DEFAULT_SPLITER)){
+        colKey = colKey.replace(/\[总和\]/g,'')
+      }
+      if(rowKey&& rowKey.includes(DEFAULT_SPLITER)){
+        rowKey = rowKey.replace(/\[总和\]/g,'')
+      }
+    }
+    
     if (colKey.includes(DEFAULT_SPLITER) && rowKey.includes(DEFAULT_SPLITER)) {
-      colKey = colKey.replace(/\[总和\]/g,'')
-      rowKey = rowKey.replace(/\[总和\]/g,'')
       const metricColKey = getMetricKey(colKey)
       const metricRowKey = getMetricKey(rowKey)
       if (metricColKey === metricRowKey) {
@@ -106,10 +114,14 @@ export class Cell extends React.PureComponent <ICellProps, ICellState> {
        if (currentColorItem) {
           const legendSelectedItem = legend[currentColorItem.name]
           let legendValue
-          if(d[currentColorItem.name]){
-            legendValue = d[currentColorItem.name]
+          if(totalOpen){
+            if(d[currentColorItem.name]){
+              legendValue = d[currentColorItem.name]
+            } else {
+              legendValue = d[`${currentColorItem.name}_cols`] || d[`${currentColorItem.name}_rows`]
+            }
           } else {
-            legendValue = d[`${currentColorItem.name}_cols`] || d[`${currentColorItem.name}_rows`]
+            legendValue = d[currentColorItem.name]
           }
           if (!(legendSelectedItem && legendSelectedItem.includes(legendValue))) {
             styleColor = {

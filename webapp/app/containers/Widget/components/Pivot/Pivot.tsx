@@ -37,7 +37,7 @@ import { RenderType, IWidgetProps } from '../Widget'
 import PivotTypes from '../../config/pivot/PivotTypes'
 const styles = require('./Pivot.less')
 import { SumText } from './constants'
-
+import _, { isEqual } from 'lodash'
 export interface IDrawingData {
   elementSize: number
   unitMetricWidth: number
@@ -261,9 +261,10 @@ export class Pivot extends React.PureComponent<IPivotProps, IPivotStates> {
       dimetionAxis
     } = props
     const selectTotal = metrics.some((m) => m?.total?.totalType.length)
-    const needSumData = data.length && metrics.length && selectTotal && metrics[0].chart.id === PivotTypes.PivotTable
+    const needSumData = data.length && metrics.length && selectTotal && metrics[0].chart.id === PivotTypes.PivotTable && (cols.length || rows.length)
     if (needSumData) {
       data = tree.getTotalWideTableList(props)
+      console.log(data, 'data值')
     }
     this.rowHeaderWidths = rows.map((r) => getPivotContentTextWidth(r, 'bold'))
     if (!cols.length && !rows.length) {
@@ -272,11 +273,11 @@ export class Pivot extends React.PureComponent<IPivotProps, IPivotStates> {
       if (needSumData) {
         this.getRemoveSuffixData(props)
       }
+    
       data.forEach((record) => {
         this.getRowKeyAndColKey(props, record, !!dimetionAxis,needSumData)
       })
       if (needSumData) {
-        console.log(this.tree, 'tree的值')
         this.getSumRowAndColKeys(props)
         if (this.rowKeys.length ) {
           this.rowKeys = tree.getSortSumNode(rows, this.rowKeys)
@@ -385,10 +386,10 @@ export class Pivot extends React.PureComponent<IPivotProps, IPivotStates> {
   }
   private getTopLevelMetricsNameOfSumNode(keys){
     const metricsName = keys[0]
-    const isSumNode =  keys.slice(1).reduce((init,cur)=>{
+    const sumRecord =  keys.slice(1).reduce((init,cur)=>{
       return init = cur == SumText.Sum ? init + 1 : init
     },0)
-    if(keys.length - 1 ==  isSumNode){
+    if(keys.length - 1 ==  sumRecord){
       const suffix = metricsName.match(/(?=@)\S*/g)
       keys[0] = `${metricsName.split(DEFAULT_SPLITER)[0]}[${SumText.Sum}]${suffix}`
     }
@@ -401,6 +402,7 @@ export class Pivot extends React.PureComponent<IPivotProps, IPivotStates> {
     needSumData: boolean
   ) => {
     const { cols, rows, metrics, color } = props
+    console.log(cols, rows, props, '设置的值。。。')
     let rowKey = []
     let colKey = []
     let flatRowKeys
@@ -537,18 +539,14 @@ export class Pivot extends React.PureComponent<IPivotProps, IPivotStates> {
             this.colKeys.push(flatColKey.split(String.fromCharCode(0)))
           }
           if(needSumData){
-            const isExited = this.colTree[flatColKey].records.some((item) => {
-              return (
-                Object.keys(item).toString() == Object.keys(record).toString()
-              )
-            })
-            if(color.items.length ){
-              const isSumNode = [SumText.Sum, SumText.Sub].includes(record[`${color.items[0].name}_rows`])
-              if(!isSumNode){
+            const sameRecord = this.colTree[flatColKey].records.some((item) => isEqual(item,record))
+            if(color.items.length){
+              const sumRecord = [SumText.Sum, SumText.Sub].includes(record[`${color.items[0].name}_rows`])
+              if(!sumRecord && !sameRecord){
                 this.colTree[flatColKey].records.push(record)
               }
             } else {
-              if(!isExited){
+              if(!sameRecord){
                 this.colTree[flatColKey].records.push(record)
               }
             }
@@ -586,21 +584,28 @@ export class Pivot extends React.PureComponent<IPivotProps, IPivotStates> {
           if (!this.tree[flatRowKey][flatColKey]) {
             this.tree[flatRowKey][flatColKey] = []
           }
-          if(needSumData){
-            const isExited = this.tree[flatRowKey][flatColKey].some((item) => {
-              return (
-                Object.keys(item).toString() == Object.keys(record).toString()
-              )
-            })
-            if (!isExited) {
+            if(needSumData){
+              const sameRecord = this.tree[flatRowKey][flatColKey].some((item) => isEqual(item,record))
+              if(!sameRecord){
+                if(color.items.length){
+                  const sumRecord = [SumText.Sum, SumText.Sub].includes(record[`${color.items[0].name}_rows`])
+                  const sameColorKey = [...rows,...cols].some((item)=>item.name==`${color.items[0].name}`)
+                  if(!sumRecord || sameColorKey){
+                    this.tree[flatRowKey][flatColKey].push(record)
+                  }
+                } else {
+                  this.tree[flatRowKey][flatColKey].push(record)
+                }
+              }
+              
+            } else {
               this.tree[flatRowKey][flatColKey].push(record)
             }
-          } else {
-            this.tree[flatRowKey][flatColKey].push(record)
-          }
+          
         }
       })
     })
+
   }
 
   private recordGrouping = (props: IPivotProps, records: any[][]) => {
@@ -884,7 +889,7 @@ export class Pivot extends React.PureComponent<IPivotProps, IPivotStates> {
       getDataDrillDetail,
       isDrilling
     } = this.props
-
+    console.log(this.props, 'this.propsde')
     const { legendSelected, renderType } = this.state
     const rowNames = rows.map((r) => r.name)
     const colNames = cols.map((c) => c.name)

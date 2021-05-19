@@ -193,25 +193,6 @@ export class TableBody extends React.Component<ITableBodyProps, ITableBodyState>
     data: []
   })
 
-  private getTopLevelMetricsNameOfSumNode(keys){
-    const metricsName = keys[0]
-    const isSumNode =  keys.slice(1).reduce((init,cur)=>{
-      return init = cur == SumText.Sum ? init + 1 : init
-    },0)
-    return keys.length  ==  isSumNode + 1
-  }
-
-  private removeTopLevelMetricsNameOfSumNode(keys){
-    const metricsName = keys[0]
-    const isSumNode =  keys.slice(1).reduce((init,cur)=>{
-      return init = cur == SumText.Sum ? init + 1 : init
-    },0)
-    if(keys.length - 1 ==  isSumNode){
-      keys[0] = metricsName.replace(/\[总和\]/g,'')
-    }
-    return keys
-  }
-
   public render () {
     let {
       rows,
@@ -241,6 +222,7 @@ export class TableBody extends React.Component<ITableBodyProps, ITableBodyState>
       ifSelectedTdToDrill
       // onHideDrillPanel
     } = this.props
+    console.log(this.props, 'this.props')
     const { elementSize, unitMetricWidth, unitMetricHeight, tableBodyCollapsed } = drawingData
     let tableBody = null
     const chartGrid: IChartLine[] = []
