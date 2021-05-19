@@ -105,9 +105,15 @@ export class Cell extends React.PureComponent <ICellProps, ICellState> {
         let styleColor
         if (currentColorItem) {
           const legendSelectedItem = legend[currentColorItem.name]
-          if (!(legendSelectedItem && legendSelectedItem.includes(d[currentColorItem.name]))) {
+          let legendValue
+          if(d[currentColorItem.name]){
+            legendValue = d[currentColorItem.name]
+          } else {
+            legendValue = d[`${currentColorItem.name}_cols`] || d[`${currentColorItem.name}_rows`]
+          }
+          if (!(legendSelectedItem && legendSelectedItem.includes(legendValue))) {
             styleColor = {
-              color: currentColorItem.config.values[d[currentColorItem.name]]
+              color: currentColorItem.config.values[legendValue]
             }
           }
         }
