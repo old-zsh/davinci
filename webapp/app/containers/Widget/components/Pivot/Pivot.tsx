@@ -277,8 +277,9 @@ export class Pivot extends React.PureComponent<IPivotProps, IPivotStates> {
       })
       if (needSumData) {
         this.getSumRowAndColKeys(props)
-        if (this.rowKeys.length && this.colKeys.length) {
+        if (this.rowKeys.length ) {
           this.rowKeys = tree.getSortSumNode(rows, this.rowKeys)
+        } if(this.colKeys.length){
           this.colKeys = tree.getSortSumNode(cols, this.colKeys)
         }
       }
@@ -539,16 +540,16 @@ export class Pivot extends React.PureComponent<IPivotProps, IPivotStates> {
               Object.keys(item).toString() == Object.keys(record).toString()
             )
           })
-          // // if (!isExited) {
-          //   this.colTree[flatColKey].records.push(record)
-          // // }
           if(color.items.length){
             const isSumNode = [SumText.Sum, SumText.Sub].includes(record[`${color.items[0].name}_rows`])
             if(!isSumNode){
               this.colTree[flatColKey].records.push(record)
             }
           } else {
-            this.colTree[flatColKey].records.push(record)
+            if(!isExited){
+              this.colTree[flatColKey].records.push(record)
+            } 
+           
           }
 
           if (metrics.length) {
@@ -586,9 +587,9 @@ export class Pivot extends React.PureComponent<IPivotProps, IPivotStates> {
               Object.keys(item).toString() == Object.keys(record).toString()
             )
           })
-          // if (!isExited) {
+          if (!isExited) {
             this.tree[flatRowKey][flatColKey].push(record)
-          // }
+          }
         }
       })
     })
