@@ -260,7 +260,7 @@ export class Pivot extends React.PureComponent<IPivotProps, IPivotStates> {
       xAxis,
       dimetionAxis
     } = props
-    const selectTotal = metrics.some((m) => m.total.totalType.length)
+    const selectTotal = metrics.some((m) => m?.total?.totalType.length)
     const needSumData = data.length && metrics.length && selectTotal
     if (needSumData) {
       data = tree.getTotalWideTableList(props)
@@ -397,7 +397,7 @@ export class Pivot extends React.PureComponent<IPivotProps, IPivotStates> {
     record: object,
     hasDimetionAxis: boolean
   ) => {
-    const { cols, rows, metrics } = props
+    const { cols, rows, metrics, color } = props
     let rowKey = []
     let colKey = []
     let flatRowKeys
@@ -539,9 +539,17 @@ export class Pivot extends React.PureComponent<IPivotProps, IPivotStates> {
               Object.keys(item).toString() == Object.keys(record).toString()
             )
           })
-          // if (!isExited) {
+          // // if (!isExited) {
+          //   this.colTree[flatColKey].records.push(record)
+          // // }
+          if(color.items.length){
+            const isSumNode = [SumText.Sum, SumText.Sub].includes(record[`${color.items[0].name}_rows`])
+            if(!isSumNode){
+              this.colTree[flatColKey].records.push(record)
+            }
+          } else {
             this.colTree[flatColKey].records.push(record)
-          // }
+          }
 
           if (metrics.length) {
             if (!hasDimetionAxis) {
