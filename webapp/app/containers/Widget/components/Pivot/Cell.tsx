@@ -103,7 +103,7 @@ export class Cell extends React.PureComponent <ICellProps, ICellState> {
       const currentColorItem = color.items.find((i) => i.config.actOn === m.name) || color.items.find((i) => i.config.actOn === 'all')
       return data && data.map((d, index) => {
         let styleColor
-        if (currentColorItem) {
+       if (currentColorItem) {
           const legendSelectedItem = legend[currentColorItem.name]
           let legendValue
           if(d[currentColorItem.name]){

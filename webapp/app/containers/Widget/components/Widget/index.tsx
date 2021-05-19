@@ -247,6 +247,7 @@ export class Widget extends React.Component<
     const { loading, empty, ...rest } = this.props
     const { width, height } = this.state
     const widgetProps = { width, height, ...rest }
+    console.log(widgetProps, 'widgetProps')
     let widgetContent: JSX.Element
     if (width && height) {
       // FIXME

@@ -261,7 +261,7 @@ export class Pivot extends React.PureComponent<IPivotProps, IPivotStates> {
       dimetionAxis
     } = props
     const selectTotal = metrics.some((m) => m?.total?.totalType.length)
-    const needSumData = data.length && metrics.length && selectTotal
+    const needSumData = data.length && metrics.length && selectTotal && metrics[0].chart.id === PivotTypes.PivotTable
     if (needSumData) {
       data = tree.getTotalWideTableList(props)
     }
@@ -273,9 +273,10 @@ export class Pivot extends React.PureComponent<IPivotProps, IPivotStates> {
         this.getRemoveSuffixData(props)
       }
       data.forEach((record) => {
-        this.getRowKeyAndColKey(props, record, !!dimetionAxis)
+        this.getRowKeyAndColKey(props, record, !!dimetionAxis,needSumData)
       })
       if (needSumData) {
+        console.log(this.tree, 'tree的值')
         this.getSumRowAndColKeys(props)
         if (this.rowKeys.length ) {
           this.rowKeys = tree.getSortSumNode(rows, this.rowKeys)
@@ -396,7 +397,8 @@ export class Pivot extends React.PureComponent<IPivotProps, IPivotStates> {
   private getRowKeyAndColKey = (
     props: IPivotProps,
     record: object,
-    hasDimetionAxis: boolean
+    hasDimetionAxis: boolean,
+    needSumData: boolean
   ) => {
     const { cols, rows, metrics, color } = props
     let rowKey = []
@@ -436,11 +438,11 @@ export class Pivot extends React.PureComponent<IPivotProps, IPivotStates> {
         })
         rowKey.push(keyArr)
       })
-      
-      rowKey = rowKey.map((keys)=>{
-        return this.getTopLevelMetricsNameOfSumNode(keys)
-      })
-     
+      if(needSumData){
+        rowKey = rowKey.map((keys)=>{
+          return this.getTopLevelMetricsNameOfSumNode(keys)
+        })
+      }
       flatRowKeys = rowKey.reduce(
         (arr, keys) => arr.concat(keys.join(String.fromCharCode(0))),
         []
@@ -473,12 +475,11 @@ export class Pivot extends React.PureComponent<IPivotProps, IPivotStates> {
         })
         colKey.push(keyArr)
       })
-
-      colKey = colKey.map((keys)=>{
-        
-        return this.getTopLevelMetricsNameOfSumNode(keys)
-      })
-
+      if(needSumData){
+        colKey = colKey.map((keys)=>{
+          return this.getTopLevelMetricsNameOfSumNode(keys)
+        })
+      }
       flatColKeys = colKey.reduce(
         (arr, keys) => arr.concat(keys.join(String.fromCharCode(0))),
         []
@@ -535,23 +536,26 @@ export class Pivot extends React.PureComponent<IPivotProps, IPivotStates> {
             this.colTree[flatColKey] = { ...width, ...height, records: [] }
             this.colKeys.push(flatColKey.split(String.fromCharCode(0)))
           }
-          const isExited = this.colTree[flatColKey].records.some((item) => {
-            return (
-              Object.keys(item).toString() == Object.keys(record).toString()
-            )
-          })
-          if(color.items.length){
-            const isSumNode = [SumText.Sum, SumText.Sub].includes(record[`${color.items[0].name}_rows`])
-            if(!isSumNode){
-              this.colTree[flatColKey].records.push(record)
+          if(needSumData){
+            const isExited = this.colTree[flatColKey].records.some((item) => {
+              return (
+                Object.keys(item).toString() == Object.keys(record).toString()
+              )
+            })
+            if(color.items.length ){
+              const isSumNode = [SumText.Sum, SumText.Sub].includes(record[`${color.items[0].name}_rows`])
+              if(!isSumNode){
+                this.colTree[flatColKey].records.push(record)
+              }
+            } else {
+              if(!isExited){
+                this.colTree[flatColKey].records.push(record)
+              }
             }
           } else {
-            if(!isExited){
-              this.colTree[flatColKey].records.push(record)
-            } 
-           
+            this.colTree[flatColKey].records.push(record)
           }
-
+         
           if (metrics.length) {
             if (!hasDimetionAxis) {
               const maxTextWidth = Math.max(
@@ -582,12 +586,16 @@ export class Pivot extends React.PureComponent<IPivotProps, IPivotStates> {
           if (!this.tree[flatRowKey][flatColKey]) {
             this.tree[flatRowKey][flatColKey] = []
           }
-          const isExited = this.tree[flatRowKey][flatColKey].some((item) => {
-            return (
-              Object.keys(item).toString() == Object.keys(record).toString()
-            )
-          })
-          if (!isExited) {
+          if(needSumData){
+            const isExited = this.tree[flatRowKey][flatColKey].some((item) => {
+              return (
+                Object.keys(item).toString() == Object.keys(record).toString()
+              )
+            })
+            if (!isExited) {
+              this.tree[flatRowKey][flatColKey].push(record)
+            }
+          } else {
             this.tree[flatRowKey][flatColKey].push(record)
           }
         }
