@@ -57,20 +57,27 @@ class MultiwayTree {
     list: {
       initWideList: [],
       totalWideList: [],
+      correctOrder: []
     }
   }
 
   constructor() {}
 
   public getInitProps(props) {
-    const { rows, cols, metrics, data } = props
-    this.treeProps.row.rowArray = rows.map((item) => `${item.name}_rows`)
+    const { rows, cols, metrics, data, color } = props
+    const colorSame = [...rows, ...cols].some((item)=>item.name === color.items[0]?.name)
+    let rowsConcat = [...rows]
+    if(!colorSame){
+      rowsConcat.push(...color.items)
+    }
+    this.treeProps.row.rowArray = rowsConcat.map((item) => `${item.name}_rows`)
     this.treeProps.col.colArray = cols.reduce((col, item) => {
       const repeatGroup = col.filter((item) => item === `${item.name}_cols`)
       const colItem = repeatGroup.length ? repeatGroup.length : ''
       col = [...col, `${item.name}_cols${colItem}`]
       return col
     }, [])
+    
     this.treeProps.metrics.metricsAgg = metrics.map((l) => l.agg)
     this.treeProps.metrics.metricsSelect = metrics.reduce((result, item) => {
       result[`${item.agg}(${item.name.split('@')[0]})`] =
@@ -100,6 +107,7 @@ class MultiwayTree {
     this.treeProps.col.colLast = colArray[colArray.length - 1]
     this.treeProps.metrics.metricsText = Object.keys(metricsSelect) || []
     this.treeProps.row.rootRowArray = [...rowArray, rootKey]
+    this.treeProps.list.correctOrder = Object.keys(data[0])
   }
 
   public getSortSumNode(rows, rowKeys) {
@@ -827,8 +835,11 @@ class MultiwayTree {
         const correctOrder = [
           ...colArray,
           ...rowArray,
+          "platform",
           ...Object.keys(metricsSelect)
         ]
+       
+        // this.treeProps.list.
         correctOrder.forEach((key) => {
           const value = Reflect.get(resultWideListLast, key)
           Reflect.deleteProperty(resultWideListLast, key)
@@ -845,6 +856,7 @@ class MultiwayTree {
     tree.getSumMultiwayTree()
     tree.getMetricNodeList()
     tree.getSumMetricDFS()
+    console.log(tree, 'tree')
     return tree.getTotalWideTableJson()
   }
 }
@@ -852,3 +864,4 @@ class MultiwayTree {
 let tree = new MultiwayTree()
 
 export default tree
+

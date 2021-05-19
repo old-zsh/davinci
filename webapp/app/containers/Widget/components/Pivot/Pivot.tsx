@@ -539,9 +539,9 @@ export class Pivot extends React.PureComponent<IPivotProps, IPivotStates> {
               Object.keys(item).toString() == Object.keys(record).toString()
             )
           })
-          if (!isExited) {
+          // if (!isExited) {
             this.colTree[flatColKey].records.push(record)
-          }
+          // }
 
           if (metrics.length) {
             if (!hasDimetionAxis) {
@@ -578,9 +578,9 @@ export class Pivot extends React.PureComponent<IPivotProps, IPivotStates> {
               Object.keys(item).toString() == Object.keys(record).toString()
             )
           })
-          if (!isExited) {
+          // if (!isExited) {
             this.tree[flatRowKey][flatColKey].push(record)
-          }
+          // }
         }
       })
     })
